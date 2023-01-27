@@ -1,11 +1,9 @@
 .include "engine/drivers/snes/interface.asm"
 .include "engine/drivers/spc700/interface.asm"
-.include "engine/drivers/input/interface.asm"
 
 Engine_Init:
  	jsr Snes_Init
     jsr SPC_Init
-	jsr INPUT_Init
     rts
 
 Engine_Frame:

@@ -1,4 +1,5 @@
 .include "engine/engine.asm"
+.include "engine/input.asm"
 .include "game/game.asm"
 
 .SNESNATIVEVECTOR               ; Define Native Mode interrupt vector table
@@ -34,10 +35,12 @@ Main:
     txs
 	jsr Engine_Init
 	jsr Game_Init
+	jsr Input_Init
  	cli
 	@Main_Loop:
 		jsr Engine_Frame
 		jsr Game_Frame
+		jsr Input_Frame
 		jmp @Main_Loop
 
 .ends
