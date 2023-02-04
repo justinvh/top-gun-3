@@ -1,35 +1,107 @@
 .include "engine/config/rom.asm"
 
-.SECTION "EmptyVectors" SEMIFREE
 
-EmptyHandler:
-       rti
+/*
+Processor flags for 65816 native mode
+=========================
+Bits: 7   6   5   4   3   2   1   0
 
-.ENDS
+                                 |e├─── Emulation: 0 = Native Mode
+     |n| |v| |m| |x| |d| |i| |z| |c|
+     └┼───┼───┼───┼───┼───┼───┼───┼┘
+      │   │   │   │   │   │   │   └──────── Carry: 1 = Carry set
+      │   │   │   │   │   │   └───────────── Zero: 1 = Result is zero
+      │   │   │   │   │   └────────── IRQ Disable: 1 = Disabled
+      │   │   │   │   └───────────── Decimal Mode: 1 = Decimal, 0 = Hexadecimal
+      │   │   │   └──────── Index Register Select: 1 = 8-bit, 0 = 16-bit
+      │   │   └─────────────── Accumulator Select: 1 = 8-bit, 0 = 16-bit
+      │   └───────────────────────────── Overflow: 1 = Overflow set
+      └───────────────────────────────── Negative: 1 = Negative set
+*/
 
-.SNESHEADER
-  ID "SNES"                     ; 1-4 letter string, just leave it as "SNES"
-  
-  NAME "I've 0 idea wut to do"  ; Program Title - can't be over 21 bytes,
-  ;    "123456789012345678901"  ; use spaces for unused bytes of the name.
+/**
+ * Enable 65816 mode and put into 16-bit addressing
+ * 1. Put the CPU into 65816 mode (native 16-bit)
+ * 	1.1. Clear the carry (clc)
+ * 	1.2. Set E=0 (xce)
+ */
+.macro Enable65816
+	clc
+	xce
+	rep 	#%00110000
+	.ACCU	16
+	.INDEX	16
+.endm
 
-  SLOWROM
-  LOROM
+/**
+ * Set Binary Mode
+ * ----D---
+ */
+ .macro EnableBinaryMode
+	rep #%00001000
+.endm
 
-  CARTRIDGETYPE $00             ; $00 = ROM only, see WLA documentation for others
-  ROMSIZE $08                   ; $08 = 2 Mbits,  see WLA doc for more..
-  SRAMSIZE $00                  ; No SRAM         see WLA doc for more..
-  COUNTRY $01                   ; $01 = U.S.  $00 = Japan  $02 = Australia, Europe, Oceania and Asia  $03 = Sweden  $04 = Finland  $05 = Denmark  $06 = France  $07 = Holland  $08 = Spain  $09 = Germany, Austria and Switzerland  $0A = Italy  $0B = Hong Kong and China  $0C = Indonesia  $0D = Korea
-  LICENSEECODE $00              ; Just use $00
-  VERSION $00                   ; $00 = 1.00, $01 = 1.01, etc.
-.ENDSNES
+/**
+ * Set 16-bit Accumulator and XY Index Registers
+ * --MX----
+ *
+ * This is done by resetting the processor state for the
+ * accumulator and index register select flags. When the
+ * flags are set to 1, then we are resetting the value back
+ * to 0, which puts the state into 16-bit for Accumulator and XY
+ */
+.macro A16_XY16
+	rep 	#%00110000
+	.ACCU	16
+	.INDEX	16
+.endm
+
+/**
+ * Set 8-bit Accumulator and 16-bit XY registers
+ * ---X----
+ */
+.macro A8_XY16
+	rep 	#%00010000
+	sep		#%00100000
+	.ACCU	8
+	.INDEX	16
+.endm
+
+/**
+ * Set 16-bit Accumulator and 8-bit XY registers
+ * --M-----
+ */
+.macro A16_XY8
+	rep 	#%00100000
+	sep		#%00010000
+	.ACCU	16
+	.INDEX	8
+.endm
+
+/**
+ * Set 8-bit Accumulator and 8-bit XY registers
+ * --MX----
+ */
+.macro A8_XY8
+	sep		#%00110000
+	.ACCU	8
+	.INDEX	8
+.endm
 
 .bank 0 slot 0
 .org 1
  .section "Snes_Init" SEMIFREE
+
  Snes_Init:
- 	sep 	#$20    ; A is 8 bit
- 	lda 	#$8F    ; screen off, full brightness
+	; Sanity Checks / Learning
+	jsr		A16_XY16_Test
+
+	; Sanity Checks / Learning
+	jsr		A8_XY8_Test
+
+	; 8-bit addressing and index registers for initialization
+	A8_XY8
+ 	lda 	#$8F	; Screen off, full brightness
  	sta 	$2100   ; brightness + screen enable register 
  	stz 	$2101   ; Sprite register (size + address in VRAM) 
  	stz 	$2102   ; Sprite registers (address of sprite memory [OAM])
@@ -112,6 +184,58 @@ EmptyHandler:
  	stz 	$420A   ; Vertical Count Timer MSB
  	stz 	$420B   ; General DMA enable (bits 0-7)
  	stz 	$420C   ; Horizontal DMA (HDMA) enable (bits 0-7)
- 	stz 	$420D	; Access cycle designation (slow/fast rom)
+	stz 	$420D	; Accss cycle designation (slow/fast rom)
  	rts
+
+/**
+ * Quick 16-bit Sanity Checks
+ */
+ A16_XY16_Test:
+	A16_XY16
+	.ACCU	16
+	.INDEX	16
+
+	lda		#$BBAA
+	ldx		#$1111
+	ldy		#$2222
+
+	phx
+	phy
+	pha
+
+	lda		#$0000
+	ldx		#$0000
+	ldy		#$0000
+
+	pla
+	ply
+	plx
+
+	rts
+
+/**
+ * Quick 8-bit Sanity Checks
+ */
+A8_XY8_Test:
+	A8_XY8
+	.ACCU	8
+	.INDEX	8
+
+	lda		#$AA
+	ldx		#$11
+	ldy		#$22
+
+	phx
+	phy
+	pha
+
+	lda		#$00
+	ldx		#$00
+	ldy		#$00
+
+	pla
+	ply
+	plx
+
+	rts
  .ends

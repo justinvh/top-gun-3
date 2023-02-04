@@ -12,6 +12,7 @@ Input_Init:
     rts
 
 Input_Frame:
+	A8_XY8
 	lda CNTRL1L     ; $4218
 	sta Joy1A
 	lda CNTRL1H     ; $4219
