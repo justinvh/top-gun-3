@@ -2,3 +2,5 @@
 *.obj
 *.smc
 .vscode/
+*.lst
+*.sym

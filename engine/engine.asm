@@ -6,7 +6,21 @@ Engine_Init:
     ; jsr SPC_Init
     rts
 
+; testing. checks if x key is pressed and changes background color in change_bg
 Engine_Frame:
+	A8_XY8
+	lda Joy1A
+	cmp #$2F
+	BEQ Change_BG
+	lda	#%00001111
+	sta	$2122
+
+	rts
+
+Change_BG:
+	lda	#%00011110
+	sta	$2122
+
 	rts
 
 Engine_Render:
