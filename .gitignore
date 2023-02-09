@@ -9,4 +9,5 @@ zsnes/
 snes9x/
 bsnes/
 out/
-.gitignore
+*.lst
+*.sym
