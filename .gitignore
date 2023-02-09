@@ -1,4 +1,12 @@
 *~
 *.obj
 *.smc
+*.log
+*.lst
+*.exe
 .vscode/
+zsnes/
+snes9x/
+bsnes/
+out/
+.gitignore
