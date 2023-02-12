@@ -114,6 +114,6 @@ SPC_Init:
     lda SPC_P2
     cmp $BB
     bne SPC_Init
-	rts
+    rts
 
 .ends

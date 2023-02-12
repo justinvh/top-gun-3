@@ -1,126 +1,126 @@
 .section "Snes_Interface" bank 0 slot "ROM" semifree
 
  Snes_Init:
-	A8_XY16
+    A8_XY16
 
-	; Set data bank to be the program bank
-	phk
-	plb
+    ; Set data bank to be the program bank
+    phk
+    plb
 
-	; Set direct page and transfer accumulators
-	lda #$00
-	tcd
+    ; Set direct page and transfer accumulators
+    lda #$00
+    tcd
 
-	; Turn off screen
-	lda #$8F
-	sta INIDISP
+    ; Turn off screen
+    lda #$8F
+    sta INIDISP
 
-	@ClearBackground:
-		ZeroRegisters($210D, $2114, "Background")
+    @ClearBackground:
+        ZeroRegisters($210D, $2114, "Background")
 
-	; Initialize VRAM transfer mode to word-access, increment by 1
-	; Set the VRAM address to $0000
-	@InitVRAM:
-		lda #$80
-		sta VMAIN
-		stz VMADDL
-		stz VMADDH
-		
-	; Clear Mode7
-	@ClearMode7:
-		ZeroRegisters($211A, $2120, "Mode7")
+    ; Initialize VRAM transfer mode to word-access, increment by 1
+    ; Set the VRAM address to $0000
+    @InitVRAM:
+        lda #$80
+        sta VMAIN
+        stz VMADDL
+        stz VMADDH
 
-	; Clear interlacing, main screens, sub screens, color addition
-	@ClearScreen:
-		ZeroRegisters($2123, $2133, "Screen")
+    ; Clear Mode7
+    @ClearMode7:
+        ZeroRegisters($211A, $2120, "Mode7")
 
-		; Current theory is that it indicates the status of the "MASTER"
-		; pin on the S-PPU1 chip, which in the normal SNES is always GND.
-		stz STAT77
+    ; Clear interlacing, main screens, sub screens, color addition
+    @ClearScreen:
+        ZeroRegisters($2123, $2133, "Screen")
 
-		; Disable timers, NMI, and auto-joyread
-		stz NMITIMEN
+        ; Current theory is that it indicates the status of the "MASTER"
+        ; pin on the S-PPU1 chip, which in the normal SNES is always GND.
+        stz STAT77
 
-		; Programmable I/O write port, initialize to allow reading at in-port
-		lda #$FF
-		sta WRIO
+        ; Disable timers, NMI, and auto-joyread
+        stz NMITIMEN
 
-		; Disable DMA, H-MA, and make slow ROM (2.68MHz)
-		stz MDMAEN
-		stz HDMAEN
-		stz MEMSEL
+        ; Programmable I/O write port, initialize to allow reading at in-port
+        lda #$FF
+        sta WRIO
 
-		; Reset NMI status and readings
-		lda RDNMI
+        ; Disable DMA, H-MA, and make slow ROM (2.68MHz)
+        stz MDMAEN
+        stz HDMAEN
+        stz MEMSEL
 
-	; Manually clear all of VRAM
-	@ClearVRAM:
-		lda #$80
-		sta VMAIN
+        ; Reset NMI status and readings
+        lda RDNMI
 
-		; Set DMA mode to fixed source, WORD to $2118/9
-		ldx #$1809
-		stx DMAP0
+    ; Manually clear all of VRAM
+    @ClearVRAM:
+        lda #$80
+        sta VMAIN
 
-		; Set VRAM low address
-		ldx #$0000
-		stx VMADDL
+        ; Set DMA mode to fixed source, WORD to $2118/9
+        ldx #$1809
+        stx DMAP0
 
-		; Set DMA source address low byte
-		stx $0000
-		stx A1T0L
+        ; Set VRAM low address
+        ldx #$0000
+        stx VMADDL
 
-		; Set DMA source address bank
-		lda #$00
-		sta A1B0
+        ; Set DMA source address low byte
+        stx $0000
+        stx A1T0L
 
-		; Set DMA transfer size
-		ldx #$FFFF
-		stx $4305
+        ; Set DMA source address bank
+        lda #$00
+        sta A1B0
 
-		; Start DMA transfer on channel 0
-		lda #$01
-		sta $420B
+        ; Set DMA transfer size
+        ldx #$FFFF
+        stx $4305
 
-		; Clear VRAM last byte
-		stz $2119
+        ; Start DMA transfer on channel 0
+        lda #$01
+        sta $420B
 
-	@ClearPalette:
-		lda #$80
-		sta CGADD
-		ZeroRegister(CGDATA, #$0200, "CGDATA")
+        ; Clear VRAM last byte
+        stz $2119
 
-	@ClearSpriteTable:
-		; Clear sprite tables
-		stz OAMADDL
-		stz OAMADDH
-		ZeroRegister(OAMDATA, #$0220, "OAMDATA")
+    @ClearPalette:
+        lda #$80
+        sta CGADD
+        ZeroRegister(CGDATA, #$0200, "CGDATA")
 
-		; Reset OAM addr for future writes
-		stz OAMADDL
-		stz OAMADDH
+    @ClearSpriteTable:
+        ; Clear sprite tables
+        stz OAMADDL
+        stz OAMADDH
+        ZeroRegister(OAMDATA, #$0220, "OAMDATA")
 
-	@ClearWRAM:
-		stz WMADDL
-		stz WMADDM
-		stz WMADDH
-		ldx #$8008
-		stz DMAP0
-		ldx #$0000
-		stx A1T0L
-		lda #$0000
-		sta A1B0
-		ldx #$0000
-		stx $4305
-		lda #$01
-		sta $420B
-		lda #$01
-		sta $420B
+        ; Reset OAM addr for future writes
+        stz OAMADDL
+        stz OAMADDH
 
-	; Data Bank = Program Bank
-	phk
-	plb
+    @ClearWRAM:
+        stz WMADDL
+        stz WMADDM
+        stz WMADDH
+        ldx #$8008
+        stz DMAP0
+        ldx #$0000
+        stx A1T0L
+        lda #$0000
+        sta A1B0
+        ldx #$0000
+        stx $4305
+        lda #$01
+        sta $420B
+        lda #$01
+        sta $420B
 
-	rts
+    ; Data Bank = Program Bank
+    phk
+    plb
+
+    rts
 
 .ends

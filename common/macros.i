@@ -19,13 +19,13 @@ Bits: 7   6   5   4   3   2   1   0
 /**
  * Enable 65816 mode and put into 16-bit addressing
  * 1. Put the CPU into 65816 mode (native 16-bit)
- * 	1.1. Clear the carry (clc)
- * 	1.2. Set E=0 (xce)
+ *     1.1. Clear the carry (clc)
+ *     1.2. Set E=0 (xce)
  */
 .macro Enable65816
-	clc
-	xce
-	A8_XY16
+    clc
+    xce
+    A8_XY16
 .endm
 
 /**
@@ -33,7 +33,7 @@ Bits: 7   6   5   4   3   2   1   0
  * ----D---
  */
  .macro EnableBinaryMode
-	rep #%00001000
+    rep #%00001000
 .endm
 
 /**
@@ -46,9 +46,9 @@ Bits: 7   6   5   4   3   2   1   0
  * to 0, which puts the state into 16-bit for Accumulator and XY
  */
 .macro A16_XY16
-	rep 	#%00110000
-	.ACCU	16
-	.INDEX	16
+    rep     #%00110000
+    .ACCU   16
+    .INDEX  16
 .endm
 
 /**
@@ -56,10 +56,10 @@ Bits: 7   6   5   4   3   2   1   0
  * ---X----
  */
 .macro A8_XY16
-	rep 	#%00010000
-	sep		#%00100000
-	.ACCU	8
-	.INDEX	16
+    rep    #%00010000
+    sep    #%00100000
+    .ACCU  8
+    .INDEX 6
 .endm
 
 /**
@@ -67,10 +67,10 @@ Bits: 7   6   5   4   3   2   1   0
  * --M-----
  */
 .macro A16_XY8
-	rep 	#%00100000
-	sep		#%00010000
-	.ACCU	16
-	.INDEX	8
+    rep    #%00100000
+    sep    #%00010000
+    .ACCU  16
+    .INDEX 8
 .endm
 
 /**
@@ -78,28 +78,28 @@ Bits: 7   6   5   4   3   2   1   0
  * --MX----
  */
 .macro A8_XY8
-	sep		#%00110000
-	.ACCU	8
-	.INDEX	8
+    sep    #%00110000
+    .ACCU  8
+    .INDEX 8
 .endm
 
 /**
  * Zero a range of registers
  */
 .macro ZeroRegisters ARGS START, END, NAME
-	A8_XY16
-	ldx #(END - START)
-	@ZeroRegister_{NAME}:
-		stz END, X
-		dex
-		bpl @ZeroRegister_{NAME}
+    A8_XY16
+    ldx #(END - START)
+    @ZeroRegister_{NAME}:
+        stz END, X
+        dex
+        bpl @ZeroRegister_{NAME}
 .endm
 
 .macro ZeroRegister ARGS REGISTER, COUNT, NAME
-	A8_XY16
-	ldx #(COUNT)
-	@ZeroRegister_{NAME}:
-		stz REGISTER
-		dex
-		bpl @ZeroRegister_{NAME}
+    A8_XY16
+    ldx #(COUNT)
+    @ZeroRegister_{NAME}:
+        stz REGISTER
+        dex
+        bpl @ZeroRegister_{NAME}
 .endm
