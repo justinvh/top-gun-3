@@ -11,12 +11,15 @@
     lda #$00
     tcd
 
+    ; Disable timers, NMI, and auto-joyread
+    stz NMITIMEN
+
     ; Turn off screen
     lda #$8F
     sta INIDISP
 
     @ClearBackground:
-        ZeroRegisters($210D, $2114, "Background")
+        ZeroRegisters($2105, $2114, "Background")
 
     ; Initialize VRAM transfer mode to word-access, increment by 1
     ; Set the VRAM address to $0000
@@ -37,9 +40,6 @@
         ; Current theory is that it indicates the status of the "MASTER"
         ; pin on the S-PPU1 chip, which in the normal SNES is always GND.
         stz STAT77
-
-        ; Disable timers, NMI, and auto-joyread
-        stz NMITIMEN
 
         ; Programmable I/O write port, initialize to allow reading at in-port
         lda #$FF
@@ -92,6 +92,7 @@
 
     @ClearSpriteTable:
         ; Clear sprite tables
+        stz OBSEL
         stz OAMADDL
         stz OAMADDH
 

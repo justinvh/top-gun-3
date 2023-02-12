@@ -121,7 +121,7 @@ Main:
 Main_VBlank:
     ; read NMI status, acknowledge NMI
     A8_XY16
-    lda    RDNMI
+    lda RDNMI
 
     ; Push CPU registers to stack
     A16_XY16

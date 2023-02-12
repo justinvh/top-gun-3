@@ -63,34 +63,13 @@ Bits: 7   6   5   4   3   2   1   0
 .endm
 
 /**
- * Set 16-bit Accumulator and 8-bit XY registers
- * --M-----
- */
-.macro A16_XY8
-    rep    #%00100000
-    sep    #%00010000
-    .ACCU  16
-    .INDEX 8
-.endm
-
-/**
- * Set 8-bit Accumulator and 8-bit XY registers
- * --MX----
- */
-.macro A8_XY8
-    sep    #%00110000
-    .ACCU  8
-    .INDEX 8
-.endm
-
-/**
  * Zero a range of registers
  */
 .macro ZeroRegisters ARGS START, END, NAME
     A8_XY16
     ldx #(END - START)
     @ZeroRegister_{NAME}:
-        stz END, X
+        stz START, X
         dex
         bpl @ZeroRegister_{NAME}
 .endm
