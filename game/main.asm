@@ -1,6 +1,8 @@
 .include "common/memorymap.i"
 .include "common/alias.i"
 .include "common/macros.i"
+.include "common/lib/queue.i"
+.include "common/lib/stack.i"
 
 .include "engine/engine.asm"
 .include "engine/input.asm"
@@ -24,6 +26,55 @@
 .ENDEMUVECTOR
 
 .section "MainCode" bank 0 slot "ROM"
+; Define a queue that starts at $0000 and has size 2
+Stack_Define("S1", $0000, #$0002)
+Queue_Define("Q1", $0010, #$0002)
+
+Stack_Init:
+    A16_XY16
+
+    jsr S1_Init
+
+    lda #$1234
+    jsr S1_Push
+
+    lda #$4567
+    jsr S1_Push
+
+    lda #$FFFF
+
+    ; $4567
+    jsr S1_Pop
+
+    ; $1234
+    jsr S1_Pop
+
+    A8_XY16
+
+    rts
+
+Queue_Init:
+    A16_XY16
+
+    jsr Q1_Init
+
+    lda #$1234
+    jsr Q1_Push
+
+    lda #$4567
+    jsr Q1_Push
+
+    lda #$FFFF
+
+    ; $1234
+    jsr Q1_Pop
+
+    ; $5678
+    jsr Q1_Pop
+
+    A8_XY16
+
+    rts
 
 /**
  * Entry point for everything.
@@ -41,6 +92,8 @@ Main:
     txs
 
     ; Setup our engine, game, and other drivers
+    jsr Stack_Init
+    jsr Queue_Init
     jsr Engine_Init
     jsr Game_Init
     jsr Input_Init

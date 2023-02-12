@@ -52,9 +52,10 @@ $80 and higher are 3.58MHz accessible. 2.68MHz are limited for $00 - $80
 .ENDRO
 
 .MEMORYMAP
-    DEFAULTSLOT 0
+    DEFAULTSLOT 1
     ; The first 32 pages of work RAM is mirrored across $00 to $40
-    SLOT 0    START $8000 SIZE $8000 "ROM"
+    SLOT 0    START $0000 SIZE $1000 "WRAM"
+    SLOT 1    START $8000 SIZE $8000 "ROM"
 .ENDME
 
 .SNESHEADER
