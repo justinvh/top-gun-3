@@ -3,8 +3,8 @@
 .section "Input" BANK 0 SLOT "ROM"
 
 .ENUM $80
-    Joy1A    db    ;B, Y, Select, Start, Up, Down, Left, Right
-    Joy1B    db    ;A, X, L, R, iiii-ID
+    Joy1A db    ;B, Y, Select, Start, Up, Down, Left, Right
+    Joy1B db    ;A, X, L, R, iiii-ID
 .ENDE
 
 Input_Init:

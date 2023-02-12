@@ -5,25 +5,6 @@
 
 .section "Game" bank 0 slot "ROM"
 
-.macro LoadSprite ARGS X, Y, NAME, FLIP, DEBUG_NAME
-@LoadSprite{DEBUG_NAME}:
-    ; horizontal position of second sprite
-    lda #(256/2 + X)
-    sta OAMDATA
-
-    ; vertical position of second sprite
-    lda #(224/2 + Y)
-    sta OAMDATA
-
-    ; name of second sprite
-    lda #(NAME)
-    sta OAMDATA
-
-    ; no flip, prio 0, palette 0
-    lda #(FLIP)
-    sta OAMDATA
-.endm
-
 Game_Frame:
     rts
 
@@ -31,34 +12,43 @@ Game_Init:
     @VRAMInit:
         ldx #$00
         @VRAMLoop:
-            lda SpriteData.w, X    ; get bitplane 0/2 byte from the sprite data
-            sta VMDATAL         ; write the byte in A to VRAM
-            inx                 ; increment counter/offset
-            lda SpriteData.w, X ; get bitplane 1/3 byte from the sprite data
-            sta VMDATAH         ; write the byte in A to VRAM
-            inx                 ; increment counter/offset
-            cpx #$80            ; check whether we have written $04 * $20 = $80 bytes to VRAM (four sprites)
-            bcc @VRAMLoop          ; if X is smaller than $80, continue the loop
+            ; Bitplane 0/2
+            lda SpriteData.w, X
+            sta VMDATAL
+            inx
+            ; Bitplane 1/3
+            lda SpriteData.w, X
+            sta VMDATAH
+            inx
+            ; Keep loading data
+            cpx #$80
+            bcc @VRAMLoop
 
     @CGRAMInit:
         ldx #$00
         lda #$80
         sta CGADD
         @CGRAMLoop:
-            lda ColorData.w, X    ; get the color low byte
-            sta CGDATA          ; store it in CGRAM
-            inx                 ; increase counter/offset
-            lda ColorData.w, X  ; get the color high byte
-            sta CGDATA          ; store it in CGRAM
-            inx                 ; increase counter/offset
-            cpx #$20            ; check whether 32/$20 bytes were transfered
-            bcc @CGRAMLoop        ; if not, continue loop
+            ; Low byte color data
+            lda ColorData.w, X
+            sta CGDATA
+            inx
+            ; High byte color data
+            lda ColorData.w, X
+            sta CGDATA
+            inx
+            ; Keep loading data
+            cpx #$20
+            bcc @CGRAMLoop
 
+        ; Setup the OAM data for our four sprites
         LoadSprite(-8, -8, #$00, #$00, "Sprite1")
         LoadSprite( 0, -8, #$01, #$00, "Sprite2")
         LoadSprite(-8,  0, #$02, #$00, "Sprite3")
         LoadSprite( 0,  0, #$03, #$00, "Sprite4")
 
+        ; Set main screen designation (---sdcba)
+        ; s: sprites, bg4 bg3 bg2 bg1
         lda #$10
         sta TM
     rts

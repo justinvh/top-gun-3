@@ -59,7 +59,7 @@ Bits: 7   6   5   4   3   2   1   0
     rep    #%00010000
     sep    #%00100000
     .ACCU  8
-    .INDEX 6
+    .INDEX 16
 .endm
 
 /**
@@ -102,4 +102,23 @@ Bits: 7   6   5   4   3   2   1   0
         stz REGISTER
         dex
         bpl @ZeroRegister_{NAME}
+.endm
+
+.macro LoadSprite ARGS X, Y, NAME, FLIP, DEBUG_NAME
+@LoadSprite{DEBUG_NAME}:
+    ; horizontal position of second sprite
+    lda #(256/2 + X)
+    sta OAMDATA
+
+    ; vertical position of second sprite
+    lda #(224/2 + Y)
+    sta OAMDATA
+
+    ; name of second sprite
+    lda #(NAME)
+    sta OAMDATA
+
+    ; no flip, prio 0, palette 0
+    lda #(FLIP)
+    sta OAMDATA
 .endm

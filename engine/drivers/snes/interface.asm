@@ -94,28 +94,29 @@
         ; Clear sprite tables
         stz OAMADDL
         stz OAMADDH
-        ZeroRegister(OAMDATA, #$0220, "OAMDATA")
+
+        ; 128 sprites we will initialize
+        ldx #$80
+        @InitSprite:
+            ; Set the vertical and horizontal position off the screen
+            lda #$00
+            sta OAMDATA
+            lda #$E1
+            sta OAMDATA
+
+            ; Given a placeholder name and default palette
+            lda #$00
+            sta OAMDATA
+            lda #$00
+            sta OAMDATA
+
+            ; Repeat for the rest of the sprites
+            dex
+            bpl @InitSprite
 
         ; Reset OAM addr for future writes
         stz OAMADDL
         stz OAMADDH
-
-    @ClearWRAM:
-        stz WMADDL
-        stz WMADDM
-        stz WMADDH
-        ldx #$8008
-        stz DMAP0
-        ldx #$0000
-        stx A1T0L
-        lda #$0000
-        sta A1B0
-        ldx #$0000
-        stx $4305
-        lda #$01
-        sta $420B
-        lda #$01
-        sta $420B
 
     ; Data Bank = Program Bank
     phk
