@@ -1,8 +1,3 @@
-.include "engine/config/rom.asm"
-
-.bank 1
-.section "SPC700Driver"
-
 /* SPC700 Assembly */
 .define SoundKeyAddr    $F000
 
@@ -11,5 +6,3 @@ Pause:
     cmp A,!$F000
     bne Pause
     ret
-
-.ends

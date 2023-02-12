@@ -1,26 +1,13 @@
+.include "common/memorymap.i"
+.include "common/alias.i"
+.include "common/macros.i"
+
 .include "engine/engine.asm"
 .include "engine/input.asm"
+
 .include "game/game.asm"
 
-.SECTION "EmptyVectors" SEMIFREE
-	EmptyHandler:
-		rti
-.ENDS
-
-.SNESHEADER
-  ID "SNES"                     ; 1-4 letter string, just leave it as "SNES"
-  NAME "Top Gun 3: Bottom Gun"
-  SLOWROM
-  LOROM
-  CARTRIDGETYPE $00             ; $00 = ROM only, see WLA documentation for others
-  ROMSIZE $08                   ; $08 = 2 Mbits,  see WLA doc for more..
-  SRAMSIZE $00                  ; No SRAM         see WLA doc for more..
-  COUNTRY $01                   ; $01 = U.S.  $00 = Japan  $02 = Australia, Europe, Oceania and Asia  $03 = Sweden  $04 = Finland  $05 = Denmark  $06 = France  $07 = Holland  $08 = Spain  $09 = Germany, Austria and Switzerland  $0A = Italy  $0B = Hong Kong and China  $0C = Indonesia  $0D = Korea
-  LICENSEECODE $00              ; Just use $00
-  VERSION $00                   ; $00 = 1.00, $01 = 1.01, etc.
-.ENDSNES
-
-.SNESNATIVEVECTOR               ; Define Native Mode interrupt vector table
+.SNESNATIVEVECTOR
   COP EmptyHandler
   BRK EmptyHandler
   ABORT EmptyHandler
@@ -28,7 +15,7 @@
   IRQ EmptyHandler
 .ENDNATIVEVECTOR
 
-.SNESEMUVECTOR                  ; Define Emulation Mode interrupt vector table
+.SNESEMUVECTOR
   COP EmptyHandler
   ABORT EmptyHandler
   NMI EmptyHandler
@@ -36,24 +23,21 @@
   IRQBRK EmptyHandler
 .ENDEMUVECTOR
 
-.bank 0
-
-.section "MainCode"
+.section "MainCode" bank 0 slot "ROM"
 
 /**
  * Entry point for everything.
  */
 Main:
-	; Disable interrupts until we're ready
+	; Disable interrupts
 	sei
 
-	; Jump into native mode
+	; Enter 65816, default to A8XY16
 	Enable65816
 	EnableBinaryMode
-
-	; Set stack
-	A16_XY16
-	ldx #$1FFF
+	
+	; Set stack pointer
+	ldx		#$1FFF
 	txs
 
 	; Setup our engine, game, and other drivers
@@ -62,18 +46,17 @@ Main:
 	jsr Input_Init
 
 	; Turn on the screen, we're ready to play (a000bbbb)
-	A8_XY8
-	lda	%10001111
-	sta $2100
+	lda	#$0F
+	sta INIDISP
+	
+	; Enable interrupts and joypad polling
+	lda #$81
+	sta NMITIMEN
+	cli
 
-	; Enable interrupts
- 	cli
-
-	/**
-	* This is main loop that will run the engine and then handle
-	* the game logic.
-	*/
+	; Main game loop
 	@Main_Loop:
+		wai
 		jsr Engine_Frame
 		jsr Game_Frame
 		jmp @Main_Loop
@@ -83,6 +66,10 @@ Main:
  * blanking period begins (and the interrupt is enabled)
  */
 Main_VBlank:
+	; read NMI status, acknowledge NMI
+	A8_XY16
+	lda RDNMI
+
 	; Push CPU registers to stack
 	A16_XY16
 	pha
@@ -100,9 +87,10 @@ Main_VBlank:
 	; Ideally, we only do these when the Main_Loop says it's done
 	; handling a game frame, then we can do the rendering and input
 	; and otherwise skip this ISR.
-	jsr Engine_Render
+	A8_XY16
 	jsr Input_Frame
-
+	jsr Engine_Render
+	
 	; Restore CPU registers
 	A16_XY16
 	pld
@@ -112,6 +100,9 @@ Main_VBlank:
 	pla
 
 	; Return from the interrupt
+	rti
+
+EmptyHandler:
 	rti
 
 .ends

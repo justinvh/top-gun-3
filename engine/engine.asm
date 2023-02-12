@@ -1,5 +1,6 @@
 .include "engine/drivers/snes/interface.asm"
-.include "engine/drivers/spc700/interface.asm"
+
+.section "Engine" BANK 0 SLOT "ROM"
 
 Engine_Init:
  	jsr Snes_Init
@@ -8,30 +9,23 @@ Engine_Init:
 
 ; testing. checks if x key is pressed and changes background color in change_bg
 Engine_Frame:
-	A8_XY8
 	lda Joy1A
-	cmp #$2F
-	BEQ Change_BG
-	lda	#%00001111
-	sta	$2122
-
+	cmp #$02
+	beq @ChangeBG
 	rts
 
-Change_BG:
-	lda	#%00011110
-	sta	$2122
-
+	; Reset the CGRAM address register and write a stupid color to it
+	@ChangeBG:
+		stz CGADD
+		lda #$FF
+		sta CGDATA
+		lda #$FF
+		sta CGDATA
 	rts
 
 Engine_Render:
-	A8_XY8
-
-	; Make the screen red
-	; The SNES will automatically do address increment
-	; 0bbbbbgg gggrrrrr
-	lda	#%00011111
-	sta	$2122
-	lda	#%00000000
-	sta	$2122
-
+	lda #$10
+	sta TM
     rts
+
+.ends

@@ -1,6 +1,6 @@
-.define NMITIMEN $4200          ; vblank flag
+.section "INPUT_Interface" BANK 0 SLOT "ROM"
 
 INPUT_Init:
-	lda #%10000001	; Enable NMI and Auto Joypad read
-	sta NMITIMEN   	; Interrupt Enable Flags
     rts
+
+.ends

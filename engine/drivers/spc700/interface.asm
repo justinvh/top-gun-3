@@ -1,3 +1,5 @@
+.section "SPC700_Interface" BANK 0 SLOT "ROM"
+
 /**
  *                       SPC Sound Registers
  * |=========================================================================|
@@ -113,3 +115,5 @@ SPC_Init:
     cmp $BB
     bne SPC_Init
 	rts
+
+.ends

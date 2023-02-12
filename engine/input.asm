@@ -1,6 +1,6 @@
 .include "engine/drivers/input/interface.asm"
-.define CNTRL1L $4218
-.define CNTRL1H $4219
+
+.section "Input" BANK 0 SLOT "ROM"
 
 .ENUM $80
 	Joy1A	db	;B, Y, Select, Start, Up, Down, Left, Right
@@ -8,14 +8,13 @@
 .ENDE
 
 Input_Init:
-    jsr INPUT_Init
     rts
 
 Input_Frame:
-	A8_XY8
-	lda CNTRL1L     ; $4218
+	lda JOY1L
 	sta Joy1A
-	lda CNTRL1H     ; $4219
+	lda JOY1H
 	sta Joy1B
-    nop
     rts
+
+.ends

@@ -1,5 +1,7 @@
 .include "engine/drivers/spc700/interface.asm"
 
+.section "Sound" BANK 0 SLOT "ROM"
+
 /**
  * @private
  * 
@@ -90,3 +92,5 @@ S_EchoVol:
 
 S_Init:
     rts
+
+.ends
