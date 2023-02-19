@@ -28,7 +28,7 @@
 .section "MainCode" bank 0 slot "ROM"
 ; Define a queue that starts at $0000 and has size 2
 Stack_Define("S1", $0000, #$0002)
-Queue_Define("Q1", $0010, #$0002)
+Queue_Define("Q1", $0010, #$0002, #$0002)
 
 Stack_Init:
     A16_XY16
