@@ -9,18 +9,6 @@ Engine_Init:
 
 ; testing. checks if x key is pressed and changes background color in change_bg
 Engine_Frame:
-    lda Joy1A
-    cmp #$02
-    beq @ChangeBG
-    rts
-
-    ; Reset the CGRAM address register and write a stupid color to it
-    @ChangeBG:
-        stz CGADD
-        lda #$FF
-        sta CGDATA
-        lda #$FF
-        sta CGDATA
     rts
 
 Engine_Render:

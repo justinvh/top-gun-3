@@ -3,14 +3,6 @@
  Snes_Init:
     A8_XY16
 
-    ; Set data bank to be the program bank
-    phk
-    plb
-
-    ; Set direct page and transfer accumulators
-    lda #$00
-    tcd
-
     ; Disable timers, NMI, and auto-joyread
     stz NMITIMEN
 
@@ -118,10 +110,6 @@
         ; Reset OAM addr for future writes
         stz OAMADDL
         stz OAMADDH
-
-    ; Data Bank = Program Bank
-    phk
-    plb
 
     rts
 
