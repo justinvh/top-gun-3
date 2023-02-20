@@ -101,3 +101,9 @@ Bits: 7   6   5   4   3   2   1   0
     lda #(FLIP)
     sta OAMDATA
 .endm
+
+.macro Allocate ARGS OBJECT
+    pea _sizeof_{OBJECT}
+    jsr Malloc_Bytes
+    pla
+.endm

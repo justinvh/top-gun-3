@@ -1,14 +1,81 @@
-.ACCU    8
+.ACCU     16
 .INDEX    16
 
 .include "game/sprites.i"
+.include "engine/engine.asm"
+.include "engine/input.asm"
 
 .section "Game" bank 0 slot "ROM"
 
+nop
+
+.struct Game
+    engine instanceof Engine
+    input instanceof Input
+    frame_counter dw
+.endst
+
+.enum $0000
+    game instanceof Game
+.ende
+
 Game_Frame:
+    A16_XY16
+    phx
+
+    inc game.frame_counter, X
+
+    ; Create engine pointer and call frame
+    txa
+    adc #(game.engine)
+    tax
+    jsr Engine_Frame
+
+    plx
+    phx
+
+    txa
+    adc #(game.input)
+    tax
+    jsr Input_Frame
+
+    plx
+
     rts
 
 Game_Init:
+    A16_XY16
+
+    ; Save X pointer for other objects
+    phx
+
+    ; Set frame counter to 0
+    ldy #$0000
+    sty game.frame_counter, X
+
+    ; Create engine pointer and call its init
+    ; expects X to be the this pointer
+    txa
+    adc #(game.engine)
+    tax
+    jsr Engine_Init
+
+    ; Restore X pointer
+    plx
+    phx
+
+    ; Create input pointer
+    ; expects X to be the this pointer
+    txa
+    adc #(game.input)
+    tax
+    jsr Input_Init
+
+    ; No longer need X pointer
+    plx
+
+    A8_XY16
+
     @VRAMInit:
         ldx #$00
         @VRAMLoop:
@@ -51,6 +118,34 @@ Game_Init:
         ; s: sprites, bg4 bg3 bg2 bg1
         lda #$10
         sta TM
+
+    A16_XY16
+    rts
+
+; Expects X to be this pointer
+Game_VBlank:
+    ; Save this pointer
+    phx
+
+    ; Create input pointer and call frame
+    txa
+    adc #(game.input)
+    tax
+    jsr Input_VBlank
+
+    ; Restore this pointer
+    plx
+    phx 
+
+    ; Create engine pointer and call render
+    txa
+    adc #(game.engine)
+    tax
+    jsr Engine_VBlank
+
+    ; Toss this pointer
+    plx
+
     rts
 
 .ends

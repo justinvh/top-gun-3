@@ -3,9 +3,7 @@
 .include "common/macros.i"
 .include "common/lib/queue.i"
 .include "common/lib/stack.i"
-
-.include "engine/engine.asm"
-.include "engine/input.asm"
+.include "common/lib/malloc.i"
 
 .include "game/game.asm"
 
@@ -26,55 +24,10 @@
 .ENDEMUVECTOR
 
 .section "MainCode" bank 0 slot "ROM"
-; Define a queue that starts at $0000 and has size 2
-Stack_Define("S1", $0000, #$0002)
-Queue_Define("Q1", $0010, #$0002, #$0002)
+nop
 
-Stack_Init:
-    A16_XY16
-
-    jsr S1_Init
-
-    lda #$1234
-    jsr S1_Push
-
-    lda #$4567
-    jsr S1_Push
-
-    lda #$FFFF
-
-    ; $4567
-    jsr S1_Pop
-
-    ; $1234
-    jsr S1_Pop
-
-    A8_XY16
-
-    rts
-
-Queue_Init:
-    A16_XY16
-
-    jsr Q1_Init
-
-    lda #$1234
-    jsr Q1_Push
-
-    lda #$4567
-    jsr Q1_Push
-
-    lda #$FFFF
-
-    ; $1234
-    jsr Q1_Pop
-
-    ; $5678
-    jsr Q1_Pop
-
-    A8_XY16
-
-    rts
+; Special pointer to the global game object for nmi
+.define GAME_GLOBAL $0000
 
 /**
  * Entry point for everything.
@@ -86,19 +39,26 @@ Main:
     ; Enter 65816, default to A8XY16
     Enable65816
     EnableBinaryMode
+
+    A16_XY16
     
     ; Set stack pointer
     ldx #$1FFF
     txs
 
-    ; Setup our engine, game, and other drivers
-    jsr Stack_Init
-    jsr Queue_Init
-    jsr Engine_Init
-    jsr Game_Init
-    jsr Input_Init
+    ; Setup allocators
+    jsr Malloc_Init
 
-    ; Turn on the screen, we're ready to play (a000bbbb)
+    ; Allocate memory for a game
+    ; X will have start address
+    lda _sizeof_Game
+    jsr Malloc_Bytes    ; Expects A to be the malloc size
+    phx                 ; Put X onto the stack as the Game object
+    stx GAME_GLOBAL           ; Put Game pointer into the first address as global variable
+    jsr Game_Init       ; Expects X to be the "this" pointer
+
+    A8_XY16
+
     lda #$0F
     sta INIDISP
     
@@ -110,7 +70,8 @@ Main:
     ; Main game loop
     @Main_Loop:
         wai
-        jsr Engine_Frame
+        plx ; Transfer stack to the X object for "this" pointer
+        phx
         jsr Game_Frame
         jmp @Main_Loop
 
@@ -140,10 +101,9 @@ Main_VBlank:
     ; Ideally, we only do these when the Main_Loop says it's done
     ; handling a game frame, then we can do the rendering and input
     ; and otherwise skip this ISR.
-    A8_XY16
-    jsr Input_Frame
-    jsr Engine_Render
-    
+    ldx ($0000)
+    jsr Game_VBlank
+
     ; Restore CPU registers
     A16_XY16
     pld
