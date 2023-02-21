@@ -18,11 +18,11 @@ nop ; This is here to prevent the compiler from optimizing the label away
     game instanceof Game        ; Pointer to the game struct
 .ende
 
-/**
- * Main game loop
- * Arguments:
- * - X: Pointer to Game struct
- */
+;
+; Main game loop
+; Arguments:
+; - X: Pointer to Game struct
+;
 Game_Frame:
     A16_XY16
     phx                             ; Save X register (this pointer)
@@ -32,11 +32,11 @@ Game_Frame:
     plx                             ; Restore X register (this pointer)
     rts
 
-/**
- * Initialize the game
- * Arguments:
- * - X: Pointer to Game struct
- */
+;
+; Initialize the game
+; Arguments:
+; - X: Pointer to Game struct
+;
 Game_Init:
     A16_XY16
     phx                             ; Save X register (this pointer)
@@ -88,11 +88,11 @@ Game_Init:
     A16_XY16
     rts
 
-/**
- * VBlank handler
- * Arguments:
- * - X: Pointer to Game struct
- */
+;
+; VBlank handler
+; Arguments:
+; - X: Pointer to Game struct
+;
 Game_VBlank:
     phx                              ; Save X register (this pointer)
     call(Input_VBlank, game.input)   ; Equivalent to this->input.vblank()

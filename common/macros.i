@@ -1,60 +1,58 @@
-/*
-Processor flags for 65816 native mode
-=========================
-Bits: 7   6   5   4   3   2   1   0
+; Processor flags for 65816 native mode
+; =========================
+; Bits: 7   6   5   4   3   2   1   0
+; 
+;                                |e├─── Emulation: 0 = Native Mode
+;    |n| |v| |m| |x| |d| |i| |z| |c|
+;    └┼───┼───┼───┼───┼───┼───┼───┼┘
+;     │   │   │   │   │   │   │   └──────── Carry: 1 = Carry set
+;     │   │   │   │   │   │   └───────────── Zero: 1 = Result is zero
+;     │   │   │   │   │   └────────── IRQ Disable: 1 = Disabled
+;     │   │   │   │   └───────────── Decimal Mode: 1 = Decimal, 0 = Hexadecimal
+;     │   │   │   └──────── Index Register Select: 1 = 8-bit, 0 = 16-bit
+;     │   │   └─────────────── Accumulator Select: 1 = 8-bit, 0 = 16-bit
+;     │   └───────────────────────────── Overflow: 1 = Overflow set
+;     └───────────────────────────────── Negative: 1 = Negative set
 
-                                 |e├─── Emulation: 0 = Native Mode
-     |n| |v| |m| |x| |d| |i| |z| |c|
-     └┼───┼───┼───┼───┼───┼───┼───┼┘
-      │   │   │   │   │   │   │   └──────── Carry: 1 = Carry set
-      │   │   │   │   │   │   └───────────── Zero: 1 = Result is zero
-      │   │   │   │   │   └────────── IRQ Disable: 1 = Disabled
-      │   │   │   │   └───────────── Decimal Mode: 1 = Decimal, 0 = Hexadecimal
-      │   │   │   └──────── Index Register Select: 1 = 8-bit, 0 = 16-bit
-      │   │   └─────────────── Accumulator Select: 1 = 8-bit, 0 = 16-bit
-      │   └───────────────────────────── Overflow: 1 = Overflow set
-      └───────────────────────────────── Negative: 1 = Negative set
-*/
-
-/**
- * Enable 65816 mode and put into 16-bit addressing
- * 1. Put the CPU into 65816 mode (native 16-bit)
- *     1.1. Clear the carry (clc)
- *     1.2. Set E=0 (xce)
- */
+;
+; Enable 65816 mode and put into 16-bit addressing
+; 1. Put the CPU into 65816 mode (native 16-bit)
+;     1.1. Clear the carry (clc)
+;     1.2. Set E=0 (xce)
+;
 .macro Enable65816
     clc
     xce
     A8_XY16
 .endm
 
-/**
- * Set Binary Mode
- * ----D---
- */
+;
+; Set Binary Mode
+; ----D---
+;
  .macro EnableBinaryMode
     rep #%00001000
 .endm
 
-/**
- * Set 16-bit Accumulator and XY Index Registers
- * --MX----
- *
- * This is done by resetting the processor state for the
- * accumulator and index register select flags. When the
- * flags are set to 1, then we are resetting the value back
- * to 0, which puts the state into 16-bit for Accumulator and XY
- */
+;
+; Set 16-bit Accumulator and XY Index Registers
+; --MX----
+;
+; This is done by resetting the processor state for the
+; accumulator and index register select flags. When the
+; flags are set to 1, then we are resetting the value back
+; to 0, which puts the state into 16-bit for Accumulator and XY
+;
 .macro A16_XY16
     rep     #%00110000
     .ACCU   16
     .INDEX  16
 .endm
 
-/**
- * Set 8-bit Accumulator and 16-bit XY registers
- * ---X----
- */
+;
+; Set 8-bit Accumulator and 16-bit XY registers
+; ---X----
+;
 .macro A8_XY16
     rep    #%00010000
     sep    #%00100000
@@ -62,13 +60,13 @@ Bits: 7   6   5   4   3   2   1   0
     .INDEX 16
 .endm
 
-/**
- * Zero a range of registers
- * Arguments:
- * - START: The starting register
- * - END: The ending register
- * - NAME: The name of the register for debugging labels
- */
+;
+; Zero a range of registers
+; Arguments:
+; - START: The starting register
+; - END: The ending register
+; - NAME: The name of the register for debugging labels
+;
 .macro ZeroRegisters ARGS START, END, NAME
     A8_XY16
     ldx #(END - START)           ; Compute loop count
@@ -78,13 +76,13 @@ Bits: 7   6   5   4   3   2   1   0
         bpl @ZeroRegister_{NAME} ; Branch if positive
 .endm
 
-/**
- * Zero a specific register
- * Arguments:
- *  - REGISTER: The register to zero
- *  - COUNT: The number of times to zero the register
- *  - NAME: The name of the register for debugging labels
- */
+;
+; Zero a specific register
+; Arguments:
+;  - REGISTER: The register to zero
+;  - COUNT: The number of times to zero the register
+;  - NAME: The name of the register for debugging labels
+;
 .macro ZeroRegister ARGS REGISTER, COUNT, NAME
     A8_XY16
     ldx #(COUNT)                 ; Loop COUNT times
@@ -94,15 +92,15 @@ Bits: 7   6   5   4   3   2   1   0
         bpl @ZeroRegister_{NAME} ; Branch if positive
 .endm
 
-/**
- * Load a sprite into the OAM
- * Arguments:
- *  - X: The horizontal position of the sprite
- *  - Y: The vertical position of the sprite
- *  - NAME: The name (index) of the sprite
- *  - FLIP: The flip and palette attributes
- *  - DEBUG_NAME: The name of the sprite for debugging labels
- */
+;
+; Load a sprite into the OAM
+; Arguments:
+;  - X: The horizontal position of the sprite
+;  - Y: The vertical position of the sprite
+;  - NAME: The name (index) of the sprite
+;  - FLIP: The flip and palette attributes
+;  - DEBUG_NAME: The name of the sprite for debugging labels
+;
 .macro LoadSprite ARGS X, Y, NAME, FLIP, DEBUG_NAME
 @LoadSprite{DEBUG_NAME}:
     ; horizontal position of second sprite
@@ -122,23 +120,23 @@ Bits: 7   6   5   4   3   2   1   0
     sta OAMDATA         ; Store the value in the OAMDATA register
 .endm
 
-/**
- * Allocate memory for an object
- * Arguments:
- *  - OBJECT: The object to allocate memory for
- */ 
+;
+; Allocate memory for an object
+; Arguments:
+;  - OBJECT: The object to allocate memory for
+; 
 .macro Allocate ARGS OBJECT
     pea _sizeof_{OBJECT} ; Push the size of the object onto the stack
     jsr Malloc_Bytes     ; Request memory for the object
     pla
 .endm
 
-/**
- * Call a function with a "this" pointer
- * Arguments:
- *  - FUNCTION: The function to call
- *  - OFFSET: The offset of the "this" pointer
- */
+;
+; Call a function with a "this" pointer
+; Arguments:
+;  - FUNCTION: The function to call
+;  - OFFSET: The offset of the "this" pointer
+;
 .macro call ARGS FUNCTION, OFFSET
     phx             ; Push the X register onto the stack
     txa             ; Copy the X register to the accumulator

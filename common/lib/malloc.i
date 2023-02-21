@@ -11,22 +11,21 @@
     malloc instanceof Malloc
 .ende
 
-/**
- *  @example
- *      jsr Malloc_Init
- */
+;
+;  @example
+;      jsr Malloc_Init
+;
 Malloc_Init:
     A16_XY16
     lda #(MALLOC_START + 4)
     sta malloc.next
     rts
 
-/*
- *  @example
- *      lda $#50 ; 50 bytes
- *      jsr Malloc_Bytes
- *      ; X now holds your pointer
- */
+;  @example
+;      lda $#50 ; 50 bytes
+;      jsr Malloc_Bytes
+;      ; X now holds your pointer
+;
 Malloc_Bytes:
     A16_XY16
 

@@ -29,9 +29,9 @@ nop
 ; Special pointer to the global game object for nmi
 .define GAME_GLOBAL $0000
 
-/**
- * Entry point for everything.
- */
+;
+; Entry point for everything.
+;
 Main:
     ; Disable interrupts
     sei
@@ -76,10 +76,10 @@ Main:
         jsr Game_Frame  ; Expects X to be the "this" pointer
         jmp @Main_Loop  ; Loop forever
 
-/**
- * The VBlank interrupt is an NMI that is activated when the vertical
- * blanking period begins (and the interrupt is enabled)
- */
+;
+; The VBlank interrupt is an NMI that is activated when the vertical
+; blanking period begins (and the interrupt is enabled)
+;
 Main_VBlank:
     ; read NMI status, acknowledge NMI
     A8_XY16
