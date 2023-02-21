@@ -46,15 +46,16 @@ Main:
     ldx #$1FFF
     txs
 
-    ; Setup allocators
+    ; Setup allocators (default to offset 0x0004)
     jsr Malloc_Init
 
     ; Allocate memory for a game
     ; X will have start address
-    lda _sizeof_Game
+    lda _sizeof_Game    ; Load the size of the Game object
     jsr Malloc_Bytes    ; Expects A to be the malloc size
+
     phx                 ; Put X onto the stack as the Game object
-    stx GAME_GLOBAL           ; Put Game pointer into the first address as global variable
+    stx GAME_GLOBAL     ; Put Game pointer into the first address as global variable
     jsr Game_Init       ; Expects X to be the "this" pointer
 
     A8_XY16
@@ -69,11 +70,11 @@ Main:
 
     ; Main game loop
     @Main_Loop:
-        wai
-        plx ; Transfer stack to the X object for "this" pointer
-        phx
-        jsr Game_Frame
-        jmp @Main_Loop
+        wai             ; Wait for interrupt
+        plx             ; Transfer stack to the X object for "this" pointer
+        phx             ; Put X back on the stack
+        jsr Game_Frame  ; Expects X to be the "this" pointer
+        jmp @Main_Loop  ; Loop forever
 
 /**
  * The VBlank interrupt is an NMI that is activated when the vertical
@@ -101,8 +102,8 @@ Main_VBlank:
     ; Ideally, we only do these when the Main_Loop says it's done
     ; handling a game frame, then we can do the rendering and input
     ; and otherwise skip this ISR.
-    ldx ($0000)
-    jsr Game_VBlank
+    ldx ($0000)     ; Get the global game object pointer
+    jsr Game_VBlank ; Expects X to be the "this" pointer
 
     ; Restore CPU registers
     A16_XY16

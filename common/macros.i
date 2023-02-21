@@ -64,46 +64,86 @@ Bits: 7   6   5   4   3   2   1   0
 
 /**
  * Zero a range of registers
+ * Arguments:
+ * - START: The starting register
+ * - END: The ending register
+ * - NAME: The name of the register for debugging labels
  */
 .macro ZeroRegisters ARGS START, END, NAME
     A8_XY16
-    ldx #(END - START)
-    @ZeroRegister_{NAME}:
-        stz START, X
-        dex
-        bpl @ZeroRegister_{NAME}
+    ldx #(END - START)           ; Compute loop count
+    @ZeroRegister_{NAME}:        ; Loop label to zero a specific register
+        stz START, X             ; Zero the register 
+        dex                      ; Decrement the counter
+        bpl @ZeroRegister_{NAME} ; Branch if positive
 .endm
 
+/**
+ * Zero a specific register
+ * Arguments:
+ *  - REGISTER: The register to zero
+ *  - COUNT: The number of times to zero the register
+ *  - NAME: The name of the register for debugging labels
+ */
 .macro ZeroRegister ARGS REGISTER, COUNT, NAME
     A8_XY16
-    ldx #(COUNT)
-    @ZeroRegister_{NAME}:
-        stz REGISTER
-        dex
-        bpl @ZeroRegister_{NAME}
+    ldx #(COUNT)                 ; Loop COUNT times
+    @ZeroRegister_{NAME}:        ; Loop label to zero a specific register
+        stz REGISTER             ; Zero the register
+        dex                      ; Decrement the counter
+        bpl @ZeroRegister_{NAME} ; Branch if positive
 .endm
 
+/**
+ * Load a sprite into the OAM
+ * Arguments:
+ *  - X: The horizontal position of the sprite
+ *  - Y: The vertical position of the sprite
+ *  - NAME: The name (index) of the sprite
+ *  - FLIP: The flip and palette attributes
+ *  - DEBUG_NAME: The name of the sprite for debugging labels
+ */
 .macro LoadSprite ARGS X, Y, NAME, FLIP, DEBUG_NAME
 @LoadSprite{DEBUG_NAME}:
     ; horizontal position of second sprite
-    lda #(256/2 + X)
-    sta OAMDATA
+    lda #(256/2 + X)    ; 256/2 = 128 + X
+    sta OAMDATA         ; Store the value in the OAMDATA register
 
     ; vertical position of second sprite
-    lda #(224/2 + Y)
-    sta OAMDATA
+    lda #(224/2 + Y)    ; 224/2 = 112 + Y
+    sta OAMDATA         ; Store the value in the OAMDATA register
 
     ; name of second sprite
-    lda #(NAME)
-    sta OAMDATA
+    lda #(NAME)         ; Set the sprite index
+    sta OAMDATA         ; Store the value in the OAMDATA register
 
     ; no flip, prio 0, palette 0
-    lda #(FLIP)
-    sta OAMDATA
+    lda #(FLIP)         ; Set the sprite attributes
+    sta OAMDATA         ; Store the value in the OAMDATA register
 .endm
 
+/**
+ * Allocate memory for an object
+ * Arguments:
+ *  - OBJECT: The object to allocate memory for
+ */ 
 .macro Allocate ARGS OBJECT
-    pea _sizeof_{OBJECT}
-    jsr Malloc_Bytes
+    pea _sizeof_{OBJECT} ; Push the size of the object onto the stack
+    jsr Malloc_Bytes     ; Request memory for the object
     pla
+.endm
+
+/**
+ * Call a function with a "this" pointer
+ * Arguments:
+ *  - FUNCTION: The function to call
+ *  - OFFSET: The offset of the "this" pointer
+ */
+.macro call ARGS FUNCTION, OFFSET
+    phx             ; Push the X register onto the stack
+    txa             ; Copy the X register to the accumulator
+    adc #(OFFSET)   ; Add the "this" pointer offset
+    tax             ; Copy the accumulator to the X register
+    jsr FUNCTION    ; Call the function
+    plx             ; Pop the X register off the stack
 .endm

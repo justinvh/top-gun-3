@@ -3,23 +3,25 @@
 .define MALLOC_START $0002
 
 .struct Malloc
-size dw
-next dw
+    size dw ; Size of the current malloc
+    next dw ; Pointer to the next free memory
 .endst
 
 .enum MALLOC_START
     malloc instanceof Malloc
 .ende
 
+/**
+ *  @example
+ *      jsr Malloc_Init
+ */
 Malloc_Init:
     A16_XY16
     lda #(MALLOC_START + 4)
     sta malloc.next
     rts
 
-/**
- * void* Malloc_Bytes(size_t num_bytes)
- *
+/*
  *  @example
  *      lda $#50 ; 50 bytes
  *      jsr Malloc_Bytes

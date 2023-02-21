@@ -11,17 +11,11 @@
 .ende
 
 Engine_Init:
-    ldy #$789A
-    sty engine.frame_counter, X
-
+    stz engine.frame_counter, X
     jsr Snes_Init
-    ; jsr SPC_Init
-
     rts
 
-; testing. checks if x key is pressed and changes background color in change_bg
 Engine_Frame:
-    inc input.frame_counter, X
     rts
 
 Engine_VBlank:
