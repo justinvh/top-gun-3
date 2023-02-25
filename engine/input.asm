@@ -39,6 +39,20 @@ Input_Init:
     tya         ; Put the start address back into the accumulator
     sta input.input1l_q, X ; Store the start address into the input struct
 
+    ; Allocate Queue + 4 bytes for the second queue
+    lda #(_sizeof_Queue)
+    adc #$4
+    jsr Malloc_Bytes
+
+    ; X has the start address
+    ; Y has the end address
+    jsr Queue_Init
+
+    txy         ; Y is now the start address
+    lda 1, S    ; Grab the this pointer again
+    tax         ; X is now the proper offset
+    tya         ; Put the start address back into the accumulator
+    sta input.input1h_q, X ; Store the start address into the input struct
 
     lda #$0000
     sta input.frame_counter, X
@@ -62,9 +76,9 @@ Input_VBlank:
     call_ptr(Queue_Push, input.input1l_q)
     call_ptr(Queue_Pop, input.input1l_q)
 
-    ;lda JOY1H
-    ;jsr INPUT1H_Q_Push
-    ;jsr INPUT1H_Q_Pop
+    lda JOY1H
+    call_ptr(Queue_Push, input.input1h_q)
+    call_ptr(Queue_Pop, input.input1h_q)
 
     plx
     pla
