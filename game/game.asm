@@ -24,12 +24,15 @@ nop ; This is here to prevent the compiler from optimizing the label away
 ; - X: Pointer to Game struct
 ;
 Game_Frame:
-    A16_XY16
-    phx                             ; Save X register (this pointer)
+    pha
+    phx
+
     inc game.frame_counter, X       ; Increment frame counter
     call(Engine_Frame, game.engine) ; Equivalent to this->engine.frame()
     call(Input_Frame, game.input)   ; Equivalent to this->input.frame()
-    plx                             ; Restore X register (this pointer)
+
+    plx
+    pla
     rts
 
 ;
@@ -38,12 +41,12 @@ Game_Frame:
 ; - X: Pointer to Game struct
 ;
 Game_Init:
-    A16_XY16
+    pha                             ; Save A register
     phx                             ; Save X register (this pointer)
+
     stz game.frame_counter, X       ; Zero frame counter
     call(Engine_Init, game.engine)  ; Equivalent to this->engine.init()
     call(Input_Init, game.input)    ; Equivalent to this->input.init()
-    plx                             ; Restore X register (this pointer)
 
     A8_XY16
 
@@ -86,6 +89,8 @@ Game_Init:
         sta TM
 
     A16_XY16
+    plx
+    pla
     rts
 
 ;
@@ -94,10 +99,14 @@ Game_Init:
 ; - X: Pointer to Game struct
 ;
 Game_VBlank:
-    phx                              ; Save X register (this pointer)
+    pha
+    phx
+
     call(Input_VBlank, game.input)   ; Equivalent to this->input.vblank()
     call(Engine_VBlank, game.engine) ; Equivalent to this->engine.vblank()
-    plx                              ; Restore X register (this pointer)
+
+    plx
+    pla
     rts
 
 .ends

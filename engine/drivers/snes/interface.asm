@@ -1,6 +1,12 @@
 .section "Snes_Interface" bank 0 slot "ROM" semifree
 
+nop
+
  Snes_Init:
+    pha
+    phx
+    phy
+
     A8_XY16
 
     ; Disable timers, NMI, and auto-joyread
@@ -63,6 +69,7 @@
         stx A1T0L
 
         ; Set DMA source address bank
+        ; This does erase byte 0 of the bank. So, caution.
         lda #$00
         sta A1B0
 
@@ -111,6 +118,10 @@
         stz OAMADDL
         stz OAMADDH
 
+    A16_XY16
+    ply
+    plx
+    pla
     rts
 
 .ends

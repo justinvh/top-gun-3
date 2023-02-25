@@ -51,12 +51,13 @@ Main:
 
     ; Allocate memory for a game
     ; X will have start address
-    lda _sizeof_Game    ; Load the size of the Game object
+    lda #(_sizeof_Game) ; Load the size of the Game object
     jsr Malloc_Bytes    ; Expects A to be the malloc size
 
-    phx                 ; Put X onto the stack as the Game object
-    stx GAME_GLOBAL     ; Put Game pointer into the first address as global variable
     jsr Game_Init       ; Expects X to be the "this" pointer
+
+    ; Store the X pointer to the game object in the global variable
+    stx GAME_GLOBAL     ; Put Game pointer into the first address as global variable
 
     A8_XY16
 
@@ -68,11 +69,11 @@ Main:
     sta NMITIMEN
     cli
 
+    A16_XY16
+
     ; Main game loop
     @Main_Loop:
         wai             ; Wait for interrupt
-        plx             ; Transfer stack to the X object for "this" pointer
-        phx             ; Put X back on the stack
         jsr Game_Frame  ; Expects X to be the "this" pointer
         jmp @Main_Loop  ; Loop forever
 
@@ -106,7 +107,6 @@ Main_VBlank:
     jsr Game_VBlank ; Expects X to be the "this" pointer
 
     ; Restore CPU registers
-    A16_XY16
     pld
     plb
     ply

@@ -1,53 +1,82 @@
-.macro Queue_Define ARGS NAME, ADDRESS, SIZE, COUNT
-    .enum ADDRESS
-        {NAME}@start: dw
-        {NAME}@head:  dw
-        {NAME}@tail:  dw
-        {NAME}@end:   dw
-    .ende
+.section "Queue" BANK 0 SLOT "ROM"
 
-    {NAME}_Init:
-        A16_XY16
-        lda #(ADDRESS + (2 * 4))
-        sta {NAME}@start
+.ACCU	16
+.INDEX	16
 
-        lda #(ADDRESS + (2 * 4))
-        sta {NAME}@head
+nop
 
-        lda #(ADDRESS + (2 * 4))
-        sta {NAME}@tail
+.struct Queue
+    start: dw
+    head:  dw
+    tail:  dw
+    end:   dw
+    size:  dw
+.endst
 
-        lda #(ADDRESS + (SIZE * COUNT) + (2 * 4))
-        sta {NAME}@end
+.enum $00
+    queue instanceof Queue
+.ende
+
+; Expects X to be the start of the memory address
+; Expects Y to be the end of the memory address
+Queue_Init:
+    pha
+    phx
+    phy
+
+    ; Set the end of the memory address
+    sty queue.end, X
+
+    ; Set the initial offset for all the pointers
+    txa
+    adc #(_sizeof_Queue)
+
+    ; Set the start of the queue
+    sta queue.start, X
+    sta queue.head, X
+    sta queue.tail, X
+
+    ply
+    plx
+    pla
+    rts
+
+; Pushes whatever is in the accumulator
+; Expects X to be the start of the memory address
+Queue_Push:
+    sta (queue.tail, X)
+    inc queue.tail, X
+    inc queue.tail, X
+    rts
+
+; Pulls whatever is at the head into the accumulator
+; Expects X to be the start of the memory address
+Queue_Pop:
+    lda (queue.head, X)
+    inc queue.head, X
+    inc queue.head, X
+    rts
+
+; Sets the z flag if the Queue is empty.
+; An empty queue is one that queue.head == queue.tail and queue
+Queue_Empty:
+    rts
+
+; Sets the accumulator to the size of the Queue
+Queue_Size:
+    lda queue.tail, X
+    cmp queue.head, X
+    bcs @Positive
+    clc
+    sbc queue.head, X
+    rts
+    @Positive:
+        clc
+        lda queue.head, X
+        sbc queue.tail, X
         rts
 
-    {NAME}_Push:
-        A16_XY16
-        ldx {NAME}@tail
-        cpx {NAME}@end
-        beq {NAME}_Full       
-        sta ({NAME}@tail)
-        inc {NAME}@tail
-        inc {NAME}@tail
-        rts
-
-    {NAME}_Pop:
-        A16_XY16
-        ldx {NAME}@head
-        cpx {NAME}@end
-        beq {NAME}_Empty
-        lda ({NAME}@head)
-        inc {NAME}@head
-        inc {NAME}@head
-        rts
-
-    {NAME}_Empty:
-        lda {NAME}@start
-        sta {NAME}@head
-        rts
-
-    {NAME}_Full:
-        lda {NAME}@start
-        sta {NAME}@tail
-        rts
-.endm
+; Sets the z flag if the Queue is full.
+; A full queue is one where queue.head == queue.tail and queue.head > queue.start
+Queue_Full:
+.ends

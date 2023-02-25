@@ -68,7 +68,6 @@
 ; - NAME: The name of the register for debugging labels
 ;
 .macro ZeroRegisters ARGS START, END, NAME
-    A8_XY16
     ldx #(END - START)           ; Compute loop count
     @ZeroRegister_{NAME}:        ; Loop label to zero a specific register
         stz START, X             ; Zero the register 
@@ -84,7 +83,6 @@
 ;  - NAME: The name of the register for debugging labels
 ;
 .macro ZeroRegister ARGS REGISTER, COUNT, NAME
-    A8_XY16
     ldx #(COUNT)                 ; Loop COUNT times
     @ZeroRegister_{NAME}:        ; Loop label to zero a specific register
         stz REGISTER             ; Zero the register
@@ -138,10 +136,48 @@
 ;  - OFFSET: The offset of the "this" pointer
 ;
 .macro call ARGS FUNCTION, OFFSET
-    phx             ; Push the X register onto the stack
-    txa             ; Copy the X register to the accumulator
+    pha             ; Preserve the accumulator
+    lda 3, S        ; Load the "this" pointer from the stack
+    clc             ; Ensure carry bit is clear
     adc #(OFFSET)   ; Add the "this" pointer offset
     tax             ; Copy the accumulator to the X register
+    pla
     jsr FUNCTION    ; Call the function
-    plx             ; Pop the X register off the stack
+.endm
+
+;
+; Call a function with a "this" pointer through the pointer
+; Arguments:
+;  - FUNCTION: The function to call
+;  - OFFSET: The offset of the "this" pointer
+;
+.macro call_ptr ARGS FUNCTION, OFFSET
+    pha             ; Preserve the accumulator
+    lda 3, S        ; Load the "this" pointer from the stack
+    clc             ; Ensure carry bit is clear
+    adc #(OFFSET)   ; Add the "this" pointer offset
+    tax             ; Copy the accumulator to the X register
+    lda $0, X       ; Get the pointer at the address
+    tax             ; Now the pointer is in the X register
+    pla
+    jsr FUNCTION    ; Call the function
+.endm
+
+
+
+;
+; Memset a block of memory
+; Arguments:
+;  - ADDRESS: The address of the memory to memset
+;  - VALUE: The value to memset
+;  - COUNT: The number of bytes to memset
+;  - NAME: The name of the memory for debugging labels
+;
+.macro Memset ARGS ADDRESS, VALUE, COUNT, NAME
+    ldx #(COUNT)                 ; Loop COUNT times
+    @Memset_{NAME}:              ; Loop label to memset a specific address
+        lda #(VALUE)             ; Set the value to memset
+        sta ADDRESS, X           ; Store the value in the memory
+        dex                      ; Decrement the counter
+        bpl @Memset_{NAME}       ; Branch if positive
 .endm
