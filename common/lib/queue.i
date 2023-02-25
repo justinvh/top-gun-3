@@ -23,6 +23,9 @@ Queue_Init:
     phx
     phy
 
+    ; Clear any carry flag going into the function
+    clc
+
     ; Set the initial offset for all the pointers
     txa
     adc #(_sizeof_Queue)
@@ -54,6 +57,9 @@ Queue_Push:
     pha
     phx
     phy
+
+    ; Clear any carry flag going into the function
+    clc
 
     ; Save the accumulator
     pha
@@ -98,6 +104,9 @@ Queue_Push:
 Queue_Pop:
     phx
     phy
+
+    ; Clear any carry flag going into the function
+    clc
 
     ; Get the head index
     ldy queue.head_idx, X
