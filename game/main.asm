@@ -1,9 +1,10 @@
 .include "common/memorymap.i"
 .include "common/alias.i"
 .include "common/macros.i"
+.include "common/lib/malloc.i"
+.include "common/lib/math.i"
 .include "common/lib/queue.i"
 .include "common/lib/stack.i"
-.include "common/lib/malloc.i"
 
 .include "game/game.asm"
 
@@ -45,6 +46,10 @@ Main:
     ; Set stack pointer
     ldx #$1FFF
     txs
+
+    ldx #7
+    lda #3
+    jsr Math_Divide
 
     ; Setup allocators (default to offset 0x0004)
     jsr Malloc_Init
