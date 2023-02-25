@@ -26,7 +26,7 @@ Input_Init:
 
     ; Allocate Queue + 4 bytes for the queue
     lda #(_sizeof_Queue)
-    adc 4
+    adc #$4
     jsr Malloc_Bytes
 
     ; X has the start address

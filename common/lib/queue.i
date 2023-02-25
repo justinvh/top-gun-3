@@ -6,10 +6,10 @@
 nop
 
 .struct Queue
-    start: dw
-    head:  dw
-    tail:  dw
-    end:   dw
+    base_addr: dw ; Data buffer start address
+    buf_len:   dw ; Data buffer length
+    head_idx:  dw ; Head index counter
+    tail_idx:  dw ; Tail index counter
 .endst
 
 .enum $00
@@ -23,17 +23,25 @@ Queue_Init:
     phx
     phy
 
-    ; Set the end of the memory address
-    sty queue.end, X
-
     ; Set the initial offset for all the pointers
     txa
     adc #(_sizeof_Queue)
+    sta queue.base_addr, X
 
-    ; Set the start of the queue
-    sta queue.start, X
-    sta queue.head, X
-    sta queue.tail, X
+    ; Compute the size (number of bytes)
+    tya
+    phx
+    sec
+    sbc 1, S
+    sbc #(_sizeof_Queue)
+    clc
+    plx
+    tay
+
+    ; Set the buffer length and head/tail indexes
+    sty queue.buf_len, X
+    stz queue.head_idx, X
+    stz queue.tail_idx, X
 
     ply
     plx
@@ -44,77 +52,85 @@ Queue_Init:
 ; Expects X to be the start of the memory address
 Queue_Push:
     pha
+    phx
+    phy
 
-    ; Check if the queue is full
-    lda queue.tail, X
-    cmp queue.start, X
-    beq @MaybeFull
+    ; Save the accumulator
+    pha
 
-    ; Queue isn't empty, so insert.
-    @Push:
-        pla
-        ; Store and Increment the tail pointer
-        sta (queue.tail, X)
-        inc queue.tail, X 
-        inc queue.tail, X
+    ; Get the tail index
+    ldy queue.tail_idx, X
 
-        ; Check if the queue has reached the end of the memory address
-        cmp queue.end, X
-        beq @Reset
-        rts
+    ; Compute pointer offset
+    lda queue.base_addr, X
+    phy
+    adc 1, S
+    ply
+    tay
 
-        ; Reset the queue if it has reached the end of the memory address
-        @Reset:
-            pha
-            lda queue.start, X
-            sta queue.tail, X
-            pla
-            rts
+    ; Store accumulator at pointer offset
+    ; Restore accumulator and save value
+    pla
+    sta $0, Y
 
-    ; Check if the head and tail are at the start of the memory address
-    @MaybeFull:
-        lda queue.tail, X
-        cmp queue.head, X
-        bne @Push
-        pla
-        rts
+    ; Increment the tail index
+    inc queue.tail_idx, X
+    inc queue.tail_idx, X
+
+    ; Check if the tail index is past the buffer length
+    lda queue.buf_len, X
+    sec
+    sbc queue.tail_idx, X
+    bne @Done
+
+    ; Reset tail index
+    stz queue.tail_idx, X
+
+    @Done:
+    ply
+    plx
+    pla
+    rts
+
 
 ; Pulls whatever is at the head into the accumulator
 ; Expects X to be the start of the memory address
 Queue_Pop:
+    phx
+    phy
+
+    ; Get the head index
+    ldy queue.head_idx, X
+
+    ; Compute pointer offset
+    lda queue.base_addr, X
+    phy
+    adc 1, S
+    ply
+    tay
+
+    ; Store accumulator at pointer offset
+    lda $0, Y
     pha
 
-    ; Check if the queue is empty
-    lda queue.head, X
-    cmp queue.start, X
-    beq @MaybeEmpty
+    ; Increment the head index
+    inc queue.head_idx, X
+    inc queue.head_idx, X
 
-    ; Queue isn't empty, so pop.
-    @Pop:
-        pla
-        lda (queue.head, X)
-        inc queue.head, X
-        inc queue.head, X
+    ; Check if the tail index is past the buffer length
+    lda queue.buf_len, X
+    sec
+    sbc queue.head_idx, X
+    bne @Done
 
-        ; Check if the queue has reached the end of the memory address
-        cmp queue.end, X
-        beq @Reset
-        rts
+    ; Reset tail index
+    stz queue.head_idx, X
 
-        ; Reset the queue if it has reached the end of the memory address
-        @Reset:
-            pha
-            lda queue.start, X
-            sta queue.head, X
-            pla
-            rts
+    @Done:
 
-    @MaybeEmpty:
-        lda queue.head, X
-        cmp queue.tail, X
-        bne @Pop
-        pla
-        rts
+    pla
+    ply
+    plx
     rts
 
 .ends
