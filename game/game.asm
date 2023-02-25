@@ -2,6 +2,9 @@
 .include "engine/engine.asm"
 .include "engine/input.asm"
 
+.ACCU	16
+.INDEX	16
+
 .section "Game" bank 0 slot "ROM"
 
 nop ; This is here to prevent the compiler from optimizing the label away

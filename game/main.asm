@@ -1,3 +1,6 @@
+.ACCU	16
+.INDEX 16
+
 .include "common/memorymap.i"
 .include "common/alias.i"
 .include "common/macros.i"
