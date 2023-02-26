@@ -15,7 +15,7 @@ nop
 ; Expects a packed tileset in the following format:
 ;
 .struct SpriteSheet
-    magic       ds 3  ; "4BPP"
+    magic       ds 3  ; "SPR"
     bpp         db ; Bits per pixel
     width       db ; Width in pixels per tile
     height      db ; Height in pixels per tile
