@@ -15,7 +15,7 @@ nop
 ; Expects a packed tileset in the following format:
 ;
 .struct SpriteSheet
-    magic       db 3  ; "4BPP"
+    magic       ds 3  ; "4BPP"
     bpp         db ; Bits per pixel
     width       db ; Width in pixels per tile
     height      db ; Height in pixels per tile
@@ -28,7 +28,7 @@ nop
 ; Palette data is stored in the following format:
 ;
 .struct Palette
-    magic       db 3  ; "PAL"
+    magic       ds 3  ; "PAL"
     num_colors  db ; Number of colors in the palette
     data        db ; Where the palette data starts
 .endst
@@ -37,9 +37,9 @@ nop
 ; Map data is stored in the following format:
 ;
 .struct Map
-    magic          db 3  ; "TMX"
+    magic          ds 3  ; "TMX"
     version        db    ; Version of the map format
-    name           db 16 ; Name of the map
+    name           ds 16 ; Name of the map
     num_tiles      dw    ; Number of tiles in the map
     num_objects    dw    ; Number of objects in the map
     tile_width     db ; Width of a tile in pixels
@@ -58,25 +58,103 @@ nop
 .enum $0000
     map instanceof Map
 .ende
-
+.enum $0000
+    sprite_sheet instanceof SpriteSheet
+.ende
 .enum $0000
     palette instanceof Palette
-.ende
-
-.enum $0000
-    tileset instanceof Tileset
 .ende
 
 ;
 ; Load map data at the X register offset
 ;
+Map_Init:
+    phx
+    A8_XY16
+
+    @CheckMapMagicNumber:
+        txy
+        lda map.magic, Y
+        cmp #ASC('T')
+        bcc @Error_BadMagic
+        iny
+
+        lda map.magic, Y
+        cmp #ASC('M')
+        bcc @Error_BadMagic
+        iny
+
+        lda map.magic, Y
+        cmp #ASC('X')
+        bcc @Error_BadMagic
+        iny
+
+    @CheckSpriteMagicNumber:
+        A16_XY16
+        clc
+        lda map.sprite_offset, X
+        adc 1, S
+        tay
+        A8_XY16
+
+        lda sprite_sheet.magic, Y
+        cmp #ASC('S')
+        bcc @Error_BadMagic
+        iny
+
+        lda sprite_sheet.magic, Y
+        cmp #ASC('P')
+        bcc @Error_BadMagic
+        iny
+
+        lda sprite_sheet.magic, Y
+        cmp #ASC('R')
+        bcc @Error_BadMagic
+        iny
+
+    @CheckPaletteMagicNumber:
+        A16_XY16
+        clc
+        lda map.palette_offset, X
+        adc 1, S
+        tay
+        A8_XY16
+
+        lda palette.magic, Y
+        cmp #ASC('P')
+        bcc @Error_BadMagic
+        iny
+
+        lda palette.magic, Y
+        cmp #ASC('A')
+        bcc @Error_BadMagic
+        iny
+
+        lda palette.magic, Y
+        cmp #ASC('L')
+        bcc @Error_BadMagic
+        iny
+
+    @MagicSuccess:
+        jsr Map_Load
+
+    @Error_BadMagic:
+        nop
+
+    A16_XY16
+    plx
+    rts
+
+;
+; This routine is called after the magic number has been checked
+; Arguments:
+;  X = Pointer to the map struct
+;
+; It will load:
+; (1) The tile data from the map into vram
+; (2) The palette data into cgram
+;
 Map_Load:
-    rts
-
-Palette_Load:
-    rts
-
-Tileset_Load:
     rts
 
 .ends

@@ -1,6 +1,8 @@
 .include "game/sprites.i"
+.include "game/maps.i"
 .include "engine/engine.asm"
 .include "engine/input.asm"
+.include "engine/map.asm"
 
 .ACCU	16
 .INDEX	16
@@ -10,9 +12,10 @@
 nop ; This is here to prevent the compiler from optimizing the label away
 
 .struct Game
+    frame_counter dw            ; Frame counter (increments every frame)
+    map dw                      ; Pointer to the map struct (current map)
     engine instanceof Engine    ; Pointer to the engine struct
     input instanceof Input      ; Pointer to the input struct
-    frame_counter dw            ; Frame counter (increments every frame)
 .endst
 
 ; Intentionally offset at $0000 since we will use the X register to
@@ -50,6 +53,13 @@ Game_Init:
     stz game.frame_counter, X       ; Zero frame counter
     call(Engine_Init, game.engine)  ; Equivalent to this->engine.init()
     call(Input_Init, game.input)    ; Equivalent to this->input.init()
+
+    ; Initialize the initial map
+    lda 1, S                        ; Get the this pointer from the stack
+    tax                             ; Store it in X for indirect addressing
+    lda #(Map_Demo)                 ; Load the address of the demo map
+    sta game.map, X                 ; Set the current map
+    call_ptr(Map_Init, game.map)    ; Load the map (call through pointer)
 
     A8_XY16
 

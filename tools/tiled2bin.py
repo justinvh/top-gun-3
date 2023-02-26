@@ -140,7 +140,7 @@ class Map(Exporter):
         self.height = tiled_map.height
 
         # (HACK): Tile offset is fixed by field offset in the map struct.
-        self.tile_offset = sum(struct.calcsize(fmt) for _, fmt in self.fields[:-4])
+        self.tile_offset = sum(struct.calcsize(fmt) for _, fmt in self.fields)
 
         # This will be updated as each tile is added
         self.sprite_offset = self.tile_offset
@@ -176,7 +176,7 @@ class Map(Exporter):
 
         # Get the sprite sheet and load the palette.
         sprite = SpriteSheet()
-        sprite.magic = bytearray(b'4BPP')
+        sprite.magic = bytearray(b'SPR')
         sprite.bpp = 4
         sprite.width = 8
         sprite.height = 8
@@ -204,6 +204,9 @@ class Map(Exporter):
 
         # Update the object offset for data tracking
         self.object_offset += palette.num_bytes()
+
+        print(self.sprite_offset)
+        print(self.palette_offset)
 
 
 def main():
