@@ -118,6 +118,19 @@ nop
         stz OAMADDL
         stz OAMADDH
 
+    A8_XY16
+    @Multiply_Test:
+        lda #$2A           ; 42
+        sta $4202
+        lda #$81           ; 129
+        sta $4203
+        NOP                ; Wait 8 machine cycles
+        NOP
+        NOP
+        NOP
+        lda $4216          ; A = $2A (result low byte)
+        lda $4217          ; A = $15 (result high byte)
+
     A16_XY16
     ply
     plx

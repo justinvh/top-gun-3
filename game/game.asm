@@ -63,43 +63,19 @@ Game_Init:
 
     A8_XY16
 
-    ; Initialize the VRAM with 128 bytes of sprite data
-    @VRAMInit:
-        ldx #$00                    ; Loop counter
-        @VRAMLoop:                  ; Loop through all X bytes of sprite data
-            lda SpriteData.w, X     ; Load bitplane 0/2
-            sta VMDATAL             ; Store data to VRAM
-            inx                     ; Increment loop counter
-            lda SpriteData.w, X     ; Load bitplane 1/3
-            sta VMDATAH             ; Store data to VRAM
-            inx                     ; Increment loop counter
-            cpx #$80                ; Check if we're done
-            bcc @VRAMLoop           ; Loop if not
+    stz OAMADDL         ; Set the OAMADDR to 0
+    stz OAMADDH         ; Set the OAMADDR to 0
 
-    @CGRAMInit:
-        ldx #$00                    ; Loop counter
-        lda #$80                    ; Offset pointerfor CGRAM
-        sta CGADD                   ; Set CGADD to 0x80
-        @CGRAMLoop:                 ; Loop through all X bytes of color data
-            lda ColorData.w, X      ; Low byte color data
-            sta CGDATA              ; Store data to CGRAM
-            inx                     ; Increment loop counter
-            lda ColorData.w, X      ; High byte color data
-            sta CGDATA              ; Store data to CGRAM
-            inx                     ; Increment loop counter
-            cpx #$20                ; Check if we're done
-            bcc @CGRAMLoop          ; Loop if not
+    ; Setup the OAM data for our four sprites
+    ;LoadSprite(-8, -8, #$00, #$00, "Sprite1")
+    ;LoadSprite( 0, -8, #$01, #$00, "Sprite2")
+    ;LoadSprite(-8,  0, #$02, #$00, "Sprite3")
+    ;LoadSprite( 0,  0, #$03, #$00, "Sprite4")
 
-        ; Setup the OAM data for our four sprites
-        LoadSprite(-8, -8, #$00, #$00, "Sprite1")
-        LoadSprite( 0, -8, #$01, #$00, "Sprite2")
-        LoadSprite(-8,  0, #$02, #$00, "Sprite3")
-        LoadSprite( 0,  0, #$03, #$00, "Sprite4")
-
-        ; Set main screen designation (---sdcba)
-        ; s: sprites, bg4 bg3 bg2 bg1
-        lda #$10
-        sta TM
+    ; Set main screen designation (---sdcba)
+    ; s: sprites, bg4 bg3 bg2 bg1
+    lda #%00000001
+    sta TM
 
     A16_XY16
     plx

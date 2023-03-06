@@ -23,7 +23,9 @@ Engine_Frame:
 Engine_VBlank:
     pha
 
-    lda #$10
+    ;lda #$10
+    ;sta TM
+    lda #%00000001
     sta TM
 
     pla

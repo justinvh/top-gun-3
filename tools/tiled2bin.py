@@ -7,6 +7,9 @@ import argparse
 import struct
 import pytmx
 import logging
+import cv2
+import numpy as np
+
 
 logger = logging.getLogger(__name__)
 
@@ -73,21 +76,22 @@ class Exporter:
 class Tile(Exporter):
     fields = [
         ('id', 'B'),
-        ('x', 'H'),
-        ('y', 'H'),
+        ('version', 'B'),
+        ('index', 'H'),
     ]
 
-    def __init__(self, pk, x, y):
+    def __init__(self, pk, version, index):
         super().__init__()
         self.id = pk
-        self.x = x
-        self.y = y
+        self.version = version
+        self.index = index
 
 
 class SpriteSheet(Exporter):
     fields = [
         ('magic', '3B'),
         ('bpp', 'B'),
+        ('size', 'H'),
         ('width', 'B'),
         ('height', 'B'),
         ('num_rows', 'B'),
@@ -98,6 +102,7 @@ class Palette(Exporter):
     fields = [
         ('magic', '3B'),
         ('num_colors', 'B'),
+        ('size', 'H'),
     ]
 
 
@@ -121,6 +126,13 @@ class Map(Exporter):
     def __init__(self, tmx_map):
         super().__init__()
         self.load(tmx_map)
+
+    def rgb_to_bgr555(self, rgbpal: bytearray) -> bytearray:
+        """
+        Converts a byte array of RGB data to BGR555 bytearray.
+        """
+        array = np.array([np.reshape(np.frombuffer(rgbpal, dtype=np.uint8), (-1, 3))])
+        return cv2.cvtColor(array, cv2.COLOR_BGR2BGR555).flatten()
 
     def load(self, tmx_map):
         """
@@ -156,12 +168,11 @@ class Map(Exporter):
             if gid == 0:
                 continue
 
-            # Add a unique tile (not a gid=0 tile)
-            x *= self.tile_width
-            y *= self.tile_height
+            tid = tiled_map.tiledgidmap[gid]
 
             # Add the tile and increment the counter tracking
-            tile = Tile(x, y, gid)
+            index = (y * 32) + x # (HACK): Hardcoded map size and assumes 8x8
+            tile = Tile(tid, version=0, index=index)
             self.append(tile)
             self.num_tiles += 1
 
@@ -186,6 +197,7 @@ class Map(Exporter):
         with open(path, 'rb') as fd:
             data_4bpp = fd.read()
             sprite.data.extend(data_4bpp)
+            sprite.size = len(data_4bpp)
         self.append(sprite)
 
         # Update the palette offset for data tracking
@@ -199,7 +211,10 @@ class Map(Exporter):
         self.object_offset = self.palette_offset
         with open(path, 'rb') as fd:
             data_pal = fd.read()
-            palette.data.extend(data_pal)
+            bgr555_data = self.rgb_to_bgr555(data_pal)
+            palette.size = len(bgr555_data)
+            print('pal', palette.size)
+            palette.data.extend(bgr555_data)
         self.append(palette)
 
         # Update the object offset for data tracking
