@@ -294,7 +294,7 @@ Map_LoadTiles:
 
     ; 8-bit background mode for all modes
     A8_XY16
-    lda #%00000010
+    lda #%00000001
     sta BGMODE
 
     ; 16-bit write to VMADDL
