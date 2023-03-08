@@ -91,9 +91,10 @@ nop
         sta CGADD
         ZeroRegister(CGDATA, #$0200, "CGDATA")
 
+    A16_XY16
+
     jsr OAM_Init
 
-    A16_XY16
     ply
     plx
     pla
