@@ -105,13 +105,13 @@ OAM_Init:
 ; Accumulator is set to the OAM address.
 ;
 OAM_Index:
-    ; Take the object id and multiply by 2 to get the OAM word address
     phy
     phx
-    txa         ; Object offset (not word offset)
-    clc
-    adc 1, S    ; Multiply 2 (now word offset for the base object address)
-    adc 3, S    ; Add the extra word offset
+    txa             ; Object offset (not word offset)
+    clc             ; Don't care about any existing carry
+    asl             ; Multiply object id by 2 (now word offset for the base object address)
+    clc             ; Don't care about the carry
+    adc 3, S        ; Add the extra word offset
     stz OAMADDH     ; Keep the most significant bit at 0
     sta OAMADDL     ; Set the OAMADDR to the object's word address
     plx
