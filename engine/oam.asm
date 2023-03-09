@@ -219,7 +219,6 @@ OAM_GetX:
     ldy #0          ; Horizontal position is in word 0
     jsr OAM_Index
     lda OAMDATAREAD ; This has the byte we care about
-    ; TODO: Add the extra X bit in lower memory
     ply
     rts
 ;

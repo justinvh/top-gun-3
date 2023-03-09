@@ -1,9 +1,53 @@
+.include "common/lib/point.i"
+
 .section "Math" BANK 0 SLOT "ROM"
 
 .ACCU	16
 .INDEX	16
 
 nop
+
+;
+; Use the SNES to do 16-bit unsigned math
+; X/A -> Y, REMAINDER in X
+SNES_Math_Divide:
+
+    ; Write dividend to WRDIV
+    pha
+    txa
+    sta WRDIVL
+    xba
+    sta WRDIVH
+    pla
+
+    ; Write divisor
+    sta WRDIVB
+
+    ; Wait 16 machine cycles
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+
+    ; Load result
+    lda RDDIVL
+    xba
+    lda RDDIVH
+    xba
+    tay
+
+    ; Put remainder in X
+    lda RDMPYL
+    xba
+    lda RDMPYH
+    xba
+    tax
+
+    rts
 
 ;
 ; 16-bit divide: X/A -> Y, REMAINDER in X
