@@ -59,18 +59,24 @@ nop
 OAM_Test:
     ldx #0
     jsr OAM_GetColor
+    lda #$3
+    jsr OAM_SetColor
+
     ldx #1
     jsr OAM_GetColor
     ldx #2
     jsr OAM_GetColor
+
+    rts
 ;
 ; Reinitialize all objects in the OAM
 ;
 OAM_Init:
+    jsr OAM_Test
+
     stz OAMADDH         ; Set the OAMADDR to 0
     stz OAMADDL         ; Set the OAMADDR to 0
     stz OBSEL           ; Reinitialize object select
-    jsr OAM_Test
     ; Clear out the standard 4 bytes for each object
     ; This will clear OAM address data 000 - 255 for D15 - D0
     ldx #128            ; 128 objects
@@ -103,8 +109,8 @@ OAM_Index:
     phy
     phx
     txa         ; Object offset (not word offset)
-    adc 1, S    ; Multiply 2 (now word offset for the base object address)
     clc
+    adc 1, S    ; Multiply 2 (now word offset for the base object address)
     adc 3, S    ; Add the extra word offset
     stz OAMADDH     ; Keep the most significant bit at 0
     sta OAMADDL     ; Set the OAMADDR to the object's word address
@@ -128,6 +134,65 @@ OAM_GetColor:
     and #$3         ; Mask the palette bits
     ply
     rts
+
+;
+; Set the 3-bit value of the palette an object is using.
+;
+; X index register should be the object's id (0..127)
+; Accumulator should have the palette value
+;
+OAM_SetColor:
+    ; Left shift two bits
+    A8_XY16
+    phy
+    asl
+    asl
+
+    ; Mask off any other bits
+    and #$C
+
+    ; Save the result
+    pha
+
+    ldy #1          ; Get the word offset for the color palette data
+    jsr OAM_Index
+    pha             ; Save accumulator which has the OAM address
+
+    ; Read the OAM data so we can write it back (remember it is 16-bit word)
+    lda OAMDATAREAD ; We need to read the first byte of the word and write it back
+    pha
+    lda OAMDATAREAD ; This has the byte we care about
+    pha
+
+    ; Reset the OAM address
+    lda 3, S        ; Get the OAM index address
+    stz OAMADDH     ; Keep the most significant bit at 0
+    sta OAMADDL     ; Set the OAMADDR to the object's word address
+
+    ; Write back the first byte
+    lda 2, S
+    sta OAMDATA
+
+    ; Get the second byte (which has color data)
+    pla
+
+    ; Mask away only the color bits
+    and #$F3
+
+    ; And or them in with the prepared accumulator
+    ora 3, S
+
+    ; Write back the result
+    sta OAMDATA
+
+    pla ; Old value of the first byte
+    pla ; OAM index offset
+    pla ; Manipulated accumulator passed in
+    ply ; Restore Y passed into function
+
+    A16_XY16
+    rts
+
 ;
 ; Get the Name (000H - 1FFH) of the object
 ; X index register should be the object's id (0..127)
