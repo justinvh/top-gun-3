@@ -46,6 +46,9 @@ Main:
 
     A16_XY16
     
+    ; Initial write just to say we haven't set game pointer
+    stz $0000
+
     ; Set stack pointer
     ldx #$1FFF
     txs
