@@ -21,6 +21,7 @@
 Malloc_Init:
     lda #(MALLOC_START + 4)
     sta malloc.next
+    stz malloc.size
     rts
 
 ;  @example
@@ -38,8 +39,9 @@ Malloc_Bytes:
     lda malloc.next ; Put the start address into the accumulator
     clc             ; Clear carry flag
     adc 1, S        ; Add the malloc size to the accumulator to advance the pointer
-    sta malloc.next ; Advance the pointer
     tay             ; Put the end address into the Y register
+    inx             ; Advance the pointer
+    sta malloc.next ; Store the new pointer
 
     ; Zero memory
     lda #$0000
@@ -62,13 +64,10 @@ Memset:
 
     ; Calculate the size of the memory
     tya             ; Get the end address
-    sec             ; Set carry flag
     sbc 5, S        ; Subtract the start address from the end address
 
     ; Setup counter
     tay             ; Make the Y register the counter
-    dey
-    dey
 
     ; Loop and fill
     lda 1, S        ; Load value to write
