@@ -19,7 +19,7 @@
 ;      jsr Malloc_Init
 ;
 Malloc_Init:
-    lda #(MALLOC_START + 4)
+    lda #(MALLOC_START + _sizeof_Malloc)
     sta malloc.next
     stz malloc.size
     rts
@@ -40,7 +40,7 @@ Malloc_Bytes:
     clc             ; Clear carry flag
     adc 1, S        ; Add the malloc size to the accumulator to advance the pointer
     tay             ; Put the end address into the Y register
-    inx             ; Advance the pointer
+    ina             ; Advance the accumulator pointer
     sta malloc.next ; Store the new pointer
 
     ; Zero memory

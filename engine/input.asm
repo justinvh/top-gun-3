@@ -69,6 +69,7 @@ Input_Frame:
 Input_VBlank:
     pha
     phx
+    phy
 
     inc input.frame_counter, X
 
@@ -80,6 +81,7 @@ Input_VBlank:
     call_ptr(Queue_Push, input.input1h_q)
     call_ptr(Queue_Pop, input.input1h_q)
 
+    ply
     plx
     pla
     rts
