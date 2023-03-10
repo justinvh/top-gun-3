@@ -36,7 +36,7 @@
 ;     |----|----|----|----|----|----|---|---|---|---|---|---|---|---|---|---|
 ; 000 | ~~~~~Object V-Position~~~~~~~~~~~~~ | ~~~~~Object H-Position~~~~~~~ |
 ;     | 7  | 6  | 5  | 4  | 3  | 2  | 1 | 0 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
-; 001 | ~FLIP~  | ~PRIOR~ | ~COLOR~ | ~~~~~~~~~~~~~~~~~~~NAME~~~~~~~~~~~~~~ |
+; 001 | ~FLIP~  | ~PRIOR~ |    ~COLOR~  | ~~~~~~~~~~~~~~~NAME~~~~~~~~~~~~~~ |
 ;     | V  | H  | 1  | 0  | 2  | 1  | 0 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
 ;  .    ^         ^         ^             ^
 ;       |         |         |              \ Character code number
@@ -56,24 +56,151 @@
 ;
 .section "OAM" bank 0 slot "ROM"
 nop
+;
+; OAM Object Properties
+; This does take up more space, but it is easier to interpret
+; when looking at RAM. Use this to create an OAM representation
+; in memory and then assign it to the OAM.
+;
+.struct OAMObject
+    index        db  ; This is the index of where the object should be in OAM
+    visible      db  ; If 0, the the MSB for the h-position is set to 1 to make it invisible
+    size         db  ; 0 = 8x8, 1 = 16x16, 2 = 32x32, 3 = 64x64
+    bpp          db  ;
+    x            db  ; This is the horizontal position of the sprite
+    y            db  ; This is the vertical position of the sprite
+    vram         db  ;
+    palette      db  ; Color palette to use (0-7)
+    priority     db  ; 0 = highest, 3 = lowest
+    flip_h       db  ; 0 = normal, 1 = flip
+    flip_v       db  ; 0 = normal, 1 = flip
+.endst
+.enum $0000
+    oam_object instanceof OAMObject
+.ende
+;
+; OAM Object Properties initialization
+; X index register should point to the object
+; Initializes the object
+;
+OAMObject_Init:
+    ; Zeroize the object
+    stz oam_object.index, X
+    stz oam_object.visible, X
+    stz oam_object.size, X
+    stz oam_object.x, X
+    stz oam_object.y, X
+    stz oam_object.vram, X
+    stz oam_object.palette, X
+    stz oam_object.priority, X
+    stz oam_object.flip_h, X
+    stz oam_object.flip_v, X
+    rts
+;
+; Random OAM Object Properties initialization
+; X index register should point to the object
+; Y should be the index
+;
+OAMObject_RandomInit:
+    ; Zeroize the object
+    A8_XY16
+    tya
+    sta oam_object.index, X
+    lda #random(0, 254)
+    sta oam_object.x, X
+    lda #random(0, 254)
+    sta oam_object.y, X
+    lda #1
+    sta oam_object.visible, X
+    lda #8
+    sta oam_object.bpp, X
+    stz oam_object.vram, X
+    stz oam_object.size, X
+    lda #random(0, 1)
+    sta oam_object.flip_h, X
+    lda #random(0, 1)
+    sta oam_object.flip_v, X
+    lda #random(0, 3)
+    sta oam_object.priority, X
+    lda #random(0, 7)
+    sta oam_object.palette, X
+    A16_XY16
+    rts
+;
+; Write an OAMObject to OAM
+; X index register should point to the object
+;
+OAMObject_Write:
+    ; Prepare the bytes to write to OAM
+    lda #0
+    A8_XY16
+    ; Prepare the OAM address
+    phx
+    lda oam_object.index, X
+    tax
+    ldy #0
+    jsr OAM_Index
+    plx
+    ; Store the X position
+    lda oam_object.x, X
+    sta OAMDATA
+    ; Store the Y position
+    lda oam_object.y, X
+    sta OAMDATA
+    ; Store the VRAM address
+    lda oam_object.vram, X
+    sta OAMDATA
+    ; Put the flip into the right place
+    ; Rotate the the bits to position 7
+    lda oam_object.flip_v, X
+    ror ; Rotate puts into carry
+    ror ; And then put in position 7
+    pha
+    ; Put the flip into the right place
+    ; Rotate the the bits to position 6
+    lda oam_object.flip_h, X
+    ror ; Rotate puts into carry
+    ror ; And then put into position 6
+    ror ;
+    pha
+    ; Put priority into bits 5, 4
+    lda oam_object.priority, X
+    rol ; Put next to the color bits
+    rol
+    rol
+    rol
+    pha
+    ; Put palette into bits 3, 2, 1
+    lda oam_object.palette, X
+    rol
+    ; Or in the priority bits
+    eor 1, S
+    ; Or in the flip bits
+    eor 2, S ; Flip H
+    eor 3, S ; Flip V
+    ; Write to OAM
+    sta OAMDATA
+    ; Pop the stack
+    pla ; Priority
+    pla ; Flip H
+    pla ; Flip V
+    A16_XY16
+    rts
 OAM_Test:
     ldx #0
     jsr OAM_GetColor
     lda #$3
     jsr OAM_SetColor
-
     ldx #1
     jsr OAM_GetColor
     ldx #2
     jsr OAM_GetColor
-
     rts
 ;
 ; Reinitialize all objects in the OAM
 ;
 OAM_Init:
     jsr OAM_Test
-
     stz OAMADDH         ; Set the OAMADDR to 0
     stz OAMADDL         ; Set the OAMADDR to 0
     stz OBSEL           ; Reinitialize object select
@@ -134,7 +261,6 @@ OAM_GetColor:
     and #$3         ; Mask the palette bits
     ply
     rts
-
 ;
 ; Set the 3-bit value of the palette an object is using.
 ;
@@ -147,52 +273,39 @@ OAM_SetColor:
     phy
     asl
     asl
-
     ; Mask off any other bits
     and #$C
-
     ; Save the result
     pha
-
     ldy #1          ; Get the word offset for the color palette data
     jsr OAM_Index
     pha             ; Save accumulator which has the OAM address
-
     ; Read the OAM data so we can write it back (remember it is 16-bit word)
     lda OAMDATAREAD ; We need to read the first byte of the word and write it back
     pha
     lda OAMDATAREAD ; This has the byte we care about
     pha
-
     ; Reset the OAM address
     lda 3, S        ; Get the OAM index address
     stz OAMADDH     ; Keep the most significant bit at 0
     sta OAMADDL     ; Set the OAMADDR to the object's word address
-
     ; Write back the first byte
     lda 2, S
     sta OAMDATA
-
     ; Get the second byte (which has color data)
     pla
-
     ; Mask away only the color bits
     and #$F3
-
     ; And or them in with the prepared accumulator
     ora 3, S
-
     ; Write back the result
     sta OAMDATA
-
     pla ; Old value of the first byte
     pla ; OAM index offset
     pla ; Manipulated accumulator passed in
     ply ; Restore Y passed into function
-
     A16_XY16
     rts
-
 ;
 ; Get the Name (000H - 1FFH) of the object
 ; X index register should be the object's id (0..127)

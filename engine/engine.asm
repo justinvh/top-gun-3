@@ -6,7 +6,9 @@
 
 .struct Engine
     frame_counter dw
-    input instanceof Input      ; Pointer to the input struct
+    snes instanceof SNES
+    input instanceof Input                  ; Pointer to the input struct
+    oam_objects instanceof OAMObject 128    ; Represents OAM space
 .endst
 
 .enum $0000
@@ -14,11 +16,19 @@
 .ende
 
 Engine_Init:
+    phy
     phx
     stz engine.frame_counter, X
-    jsr Snes_Init
+    call(SNES_Init, engine.snes)      ; Equivalent to this->snes.init()
     call(Input_Init, engine.input)    ; Equivalent to this->input.init()
+
+    ; Fake OAM Object testing
+    ldy #$00 ; OAM address for testing
+    call(OAMObject_RandomInit, engine.oam_objects.1) ; Equivalent to this->oam_objects[0].init()
+    call(OAMObject_Write, engine.oam_objects.1)      ; Equivalent to this->oam_objects[0].write()
+
     plx
+    ply
     rts
 
 Engine_Frame:
