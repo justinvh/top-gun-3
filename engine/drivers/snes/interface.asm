@@ -1,10 +1,18 @@
 .include "engine/oam.asm"
 
-.section "Snes_Interface" bank 0 slot "ROM" semifree
+.section "SNES_Interface" bank 0 slot "ROM" semifree
 
 nop
 
- Snes_Init:
+.struct SNES
+    init db
+.endst
+
+.enum $0000
+    snes instanceof SNES
+.ende
+
+ SNES_Init:
     pha
     phx
     phy
@@ -63,16 +71,20 @@ nop
         stx DMAP0
 
         ; Set VRAM low address
-        ldx #$0000
-        stx VMADDL
+        stz VMADDL
 
-        ; Set DMA source address low byte
-        stx $0000
-        stx A1T0L
+        ; Set DMA source address to be a byte on the stack
+        A16_XY16
+        lda #0      ; Store 0 into the current stack pointer
+        pha
+        pla
+        tsc         ; Copy stack pointer to accumulator
+        sta A1T0L   ; Tell the DMA engine to read from the stack
+        A8_XY16
 
-        ; Set DMA source address bank
-        ; This does erase byte 0 of the bank. So, caution.
-        lda #$00
+        ; Set DMA source address bank from stack
+        phb         ; Save bank
+        pla         ; Pull bank into accumulator
         sta A1B0
 
         ; Set DMA transfer size
@@ -97,6 +109,10 @@ nop
 
     ply
     plx
+
+    lda #1
+    sta snes.init, X
+
     pla
     rts
 
