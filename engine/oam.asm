@@ -124,7 +124,8 @@ OAMObject_RandomInit:
     lda #8
     sta oam_object.bpp, X
 
-    stz oam_object.vram, X
+    lda #random(0, 3)
+    sta oam_object.vram, X
     stz oam_object.size, X
 
     lda #random(0, 1)
@@ -136,8 +137,8 @@ OAMObject_RandomInit:
     lda #random(0, 3)
     sta oam_object.priority, X
 
-    lda #random(0, 7)
-    sta oam_object.palette, X
+    ;lda #random(0, 7)
+    stz oam_object.palette, X
 
     A16_XY16
     rts
