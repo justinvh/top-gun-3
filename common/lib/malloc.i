@@ -39,8 +39,8 @@ Malloc_Bytes:
     lda malloc.next ; Put the start address into the accumulator
     clc             ; Clear carry flag
     adc 1, S        ; Add the malloc size to the accumulator to advance the pointer
+    ina             ; Increment the accumulator to account for the size of the malloc
     tay             ; Put the end address into the Y register
-    ina             ; Advance the accumulator pointer
     sta malloc.next ; Store the new pointer
 
     ; Zero memory

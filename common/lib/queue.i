@@ -34,7 +34,6 @@ Queue_Init:
     ; Compute the size (number of bytes)
     tya
     phx
-    sec
     sbc 1, S
     sbc #(_sizeof_Queue)
     clc
