@@ -44,6 +44,7 @@ Game_Frame:
 ;
 Game_Init:
     pha                             ; Save A register
+    phy                             ; Save Y register
     phx                             ; Save X register (this pointer)
 
     stz game.frame_counter, X       ; Zero frame counter
@@ -74,6 +75,7 @@ Game_Init:
 
     A16_XY16
     plx
+    ply
     pla
     rts
 
@@ -83,13 +85,7 @@ Game_Init:
 ; - X: Pointer to Game struct
 ;
 Game_VBlank:
-    pha
-    phx
-
     call(Engine_VBlank, game.engine) ; Equivalent to this->engine.vblank()
-
-    plx
-    pla
     rts
 
 .ends

@@ -136,13 +136,15 @@
 ;  - OFFSET: The offset of the "this" pointer
 ;
 .macro call ARGS FUNCTION, OFFSET
+    phx             ; Save and restore the X register
     pha             ; Preserve the accumulator
-    lda 3, S        ; Load the "this" pointer from the stack
+    txa             ; Load the "this" pointer
     clc             ; Ensure carry bit is clear
     adc #(OFFSET)   ; Add the "this" pointer offset
     tax             ; Copy the accumulator to the X register
-    pla
+    pla             ; Restore the accumulator
     jsr FUNCTION    ; Call the function
+    plx             ; Restore the old X register
 .endm
 
 ;
@@ -151,9 +153,10 @@
 ;  - FUNCTION: The function to call
 ;  - OFFSET: The offset of the "this" pointer
 ;
-.macro call_ptr ARGS FUNCTION, OFFSET
+.macro call_ptr ARGS FUNCTION, OFFSET, X_OFFSET
+    phx             ; Preserve the X register
     pha             ; Preserve the accumulator
-    lda 3, S        ; Load the "this" pointer from the stack
+    txa             ; Load the "this" pointer
     clc             ; Ensure carry bit is clear
     adc #(OFFSET)   ; Add the "this" pointer offset
     tax             ; Copy the accumulator to the X register
@@ -161,6 +164,7 @@
     tax             ; Now the pointer is in the X register
     pla
     jsr FUNCTION    ; Call the function
+    plx
 .endm
 
 

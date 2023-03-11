@@ -16,8 +16,6 @@
 .ende
 
 Engine_Init:
-    pha
-    phx
     phy
 
     stz engine.frame_counter, X
@@ -30,26 +28,14 @@ Engine_Init:
     call(OAMObject_Write, engine.oam_objects.1)      ; Equivalent to this->oam_objects[0].write()
 
     ply
-    plx
-    pla
     rts
 
 Engine_Frame:
-    pha
-    phx
-    phy
-
     call(Input_Frame, engine.input)   ; Equivalent to this->input.frame()
-
-    ply
-    plx
-    pla
     rts
 
 Engine_VBlank:
     pha
-    phx
-    phy
 
     call(Input_VBlank, engine.input)   ; Equivalent to this->input.vblank()
 
@@ -58,8 +44,6 @@ Engine_VBlank:
     lda #%00000001
     sta TM
 
-    ply
-    plx
     pla
     rts
 
