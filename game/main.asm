@@ -70,7 +70,7 @@ Main:
     ; Store the X pointer to the game object in the global variable
     stx GAME_GLOBAL     ; Put Game pointer into the first address as global variable
 
-    A8_XY16
+    A8
 
     lda #$0F
     sta INIDISP
@@ -80,7 +80,7 @@ Main:
     sta NMITIMEN
     cli
 
-    A16_XY16
+    A16
 
     ; Main game loop
     @Main_Loop:

@@ -60,6 +60,14 @@
     .INDEX 16
 .endm
 
+.macro A8
+    sep #%00100000
+.endm
+
+.macro A16
+    rep #%00100000
+.endm
+
 ;
 ; Zero a range of registers
 ; Arguments:

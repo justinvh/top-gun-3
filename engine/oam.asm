@@ -65,6 +65,8 @@ nop
 ;
 .struct OAMObject
     index        db  ; This is the index of where the object should be in OAM
+    allocated    db  ; This flag is true if the object is current bound
+    clean        db  ; If true, then this object hasn't changed
     visible      db  ; If 0, the the MSB for the h-position is set to 1 to make it invisible
     size         db  ; 0 = 8x8, 1 = 16x16, 2 = 32x32, 3 = 64x64
     bpp          db  ;
@@ -89,6 +91,8 @@ nop
 OAMObject_Init:
     ; Zeroize the object
     stz oam_object.index, X
+    stz oam_object.clean, X
+    stz oam_object.allocated, X
     stz oam_object.visible, X
     stz oam_object.size, X
     stz oam_object.x, X
@@ -107,10 +111,13 @@ OAMObject_Init:
 ;
 OAMObject_RandomInit:
     ; Zeroize the object
-    A8_XY16
+    A8
 
     tya
     sta oam_object.index, X
+
+    ; Object is default not allocated
+    stz oam_object.allocated, X
 
     lda #random(0, 254)
     sta oam_object.x, X
@@ -140,7 +147,7 @@ OAMObject_RandomInit:
     ;lda #random(0, 7)
     stz oam_object.palette, X
 
-    A16_XY16
+    A16
     rts
 
 ;
@@ -148,17 +155,24 @@ OAMObject_RandomInit:
 ; X index register should point to the object
 ;
 OAMObject_Write:
-    ; Prepare the bytes to write to OAM
-    lda #0
-    A8_XY16
+    pha
+    phy
 
+    ; Prepare the bytes to write to OAM
     ; Prepare the OAM address
     phx
     lda oam_object.index, X
+    and #$00FF
     tax
     ldy #0
     jsr OAM_Index
     plx
+
+    A8
+
+    ; Mark the object as clean
+    lda #1
+    sta oam_object.clean, X
 
     ; Store the X position
     lda oam_object.x, X
@@ -214,7 +228,9 @@ OAMObject_Write:
     pla ; Flip H 
     pla ; Flip V
 
-    A16_XY16
+    A16
+    ply
+    pla
     rts
 
 OAM_Test:
@@ -273,6 +289,7 @@ OAM_Index:
     asl             ; Multiply object id by 2 (now word offset for the base object address)
     clc             ; Don't care about the carry
     adc 3, S        ; Add the extra word offset
+    clc
     stz OAMADDH     ; Keep the most significant bit at 0
     sta OAMADDL     ; Set the OAMADDR to the object's word address
     plx
@@ -304,7 +321,7 @@ OAM_GetColor:
 ;
 OAM_SetColor:
     ; Left shift two bits
-    A8_XY16
+    A8
     phy
     asl
     asl
@@ -351,7 +368,7 @@ OAM_SetColor:
     pla ; Manipulated accumulator passed in
     ply ; Restore Y passed into function
 
-    A16_XY16
+    A16
     rts
 
 ;
@@ -460,4 +477,5 @@ OAM_GetY:
     lda OAMDATAREAD ; This has the byte we care about
     ply
     rts
+
 .ends
