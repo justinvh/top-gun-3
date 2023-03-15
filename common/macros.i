@@ -130,44 +130,44 @@
 .endm
 
 ;
-; Call a function with a "this" pointer
+; Call a function with a "this" pointer.
+; 28 cycle overhead.
 ; Arguments:
 ;  - FUNCTION: The function to call
 ;  - OFFSET: The offset of the "this" pointer
 ;
 .macro call ARGS FUNCTION, OFFSET
-    phx             ; Save and restore the X register
-    pha             ; Preserve the accumulator
-    txa             ; Load the "this" pointer
-    clc             ; Ensure carry bit is clear
-    adc #(OFFSET)   ; Add the "this" pointer offset
-    tax             ; Copy the accumulator to the X register
-    pla             ; Restore the accumulator
-    jsr FUNCTION    ; Call the function
-    plx             ; Restore the old X register
+    phx             ; Save and restore the X register (3 cycles)
+    pha             ; Preserve the accumulator (3 cycles)
+    txa             ; Load the "this" pointer (2 cycles)
+    clc             ; Ensure carry bit is clear (2 cycles)
+    adc #(OFFSET)   ; Add the "this" pointer offset (2 cycles)
+    tax             ; Copy the accumulator to the X register (2 cycles)
+    pla             ; Restore the accumulator (4 cycles)
+    jsr FUNCTION    ; Call the function (6 cycles)
+    plx             ; Restore the old X register (4 cycles)
 .endm
 
 ;
 ; Call a function with a "this" pointer through the pointer
+; 34-cycle overhead.
 ; Arguments:
 ;  - FUNCTION: The function to call
 ;  - OFFSET: The offset of the "this" pointer
 ;
-.macro call_ptr ARGS FUNCTION, OFFSET, X_OFFSET
-    phx             ; Preserve the X register
-    pha             ; Preserve the accumulator
-    txa             ; Load the "this" pointer
-    clc             ; Ensure carry bit is clear
-    adc #(OFFSET)   ; Add the "this" pointer offset
-    tax             ; Copy the accumulator to the X register
-    lda $0, X       ; Get the pointer at the address
-    tax             ; Now the pointer is in the X register
-    pla
-    jsr FUNCTION    ; Call the function
-    plx
+.macro call_ptr ARGS FUNCTION, OFFSET
+    phx             ; Preserve the X register (3 cycles)
+    pha             ; Preserve the accumulator (3 cycles)
+    txa             ; Load the "this" pointer (2 cycles)
+    clc             ; Ensure carry bit is clear (2 cycles)
+    adc #(OFFSET)   ; Add the "this" pointer offset (2 cycles)
+    tax             ; Copy the accumulator to the X register (2 cycles)
+    lda $0, X       ; Get the pointer at the address (4 cycles)
+    tax             ; Now the pointer is in the X register (2 cycles)
+    pla             ; Restore the accumulator (4 cycles)
+    jsr FUNCTION    ; Call the function (6 cycles)
+    plx             ; Restore the X register (4 cycles)
 .endm
-
-
 
 ;
 ; Memset a block of memory
