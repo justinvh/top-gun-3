@@ -106,9 +106,6 @@ nop
 
     A16
 
-    jsr BG_Init
-    jsr OAM_Init
-
     ply
     plx
 

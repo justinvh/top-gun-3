@@ -10,6 +10,7 @@
     snes instanceof SNES
     input instanceof Input
     oam_manager instanceof OAMManager
+    bg_manager instanceof BGManager
     test_object_ptr dw ; Pointer to the requested OAM object
 .endst
 
@@ -22,8 +23,9 @@ Engine_Init:
 
     stz engine.frame_counter, X
     call(SNES_Init, engine.snes)
-    call(Input_Init, engine.input)
     call(OAMManager_Init, engine.oam_manager)
+    call(BGManager_Init, engine.bg_manager)
+    call(Input_Init, engine.input)
 
     ; Test functions
     jsr Engine_InitTestObject

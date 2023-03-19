@@ -21,15 +21,42 @@ nop
 .define BG_SIZE_64_32 1
 .define BG_SIZE_32_64 2
 .define BG_SIZE_64_64 3
+
 .function BG_SC(vram, size) lobyte((($1F * vram / $7C00) << 2) | (size & $3))
 .function BG_NBA(vram) lobyte(($7 * vram / $7000) & $F)
 .function BG_12NBA(bg1, bg2) lobyte((BG_NBA(bg2) << 4) | BG_NBA(bg1))
 .function BG_34NBA(bg3, bg4) lobyte((BG_NBA(bg4) << 4) | BG_NBA(bg3))
 
+.struct BGInfo
+    next_char_vram dw ; Next available character VRAM address
+.endst
+
+.struct BGManager
+    bg_info instanceof BGInfo 4
+.endst
+
+.enum $0000
+    bg_manager instanceof BGManager
+.ende
+
 ;
-; Initialize the background modes.
+; Expects X to be a pointer to BGManager
 ;
-BG_Init:
+BGManager_Init:
+    pha
+
+    ; BG1 is 8x8 characters at 32x32 tiles at 4BPP
+    lda #BG1_CHAR_VRAM
+    sta bg_manager.bg_info.1.next_char_vram, X
+
+    ; BG2 is 8x8 characters at 32x32 tiles at 4BPP
+    lda #BG2_CHAR_VRAM
+    sta bg_manager.bg_info.2.next_char_vram, X
+
+    ; BG3 is 8x8 characters at 32x32 tiles at 2BPP
+    lda #BG3_CHAR_VRAM
+    sta bg_manager.bg_info.2.next_char_vram, X
+
     A8
 
     ; Enable Mode 1 with 8x8 characters for all sizes
@@ -60,59 +87,24 @@ BG_Init:
 
     A16
 
-    rts
-
-;
-; Set VRAM address for a BG1 tilemap.
-;
-BG1_PrepareCharacterVRAM:
-    pha
-    A8
-    lda #(lobyte(BG1_CHAR_VRAM))
-    sta VMADDL
-    lda #(hibyte(BG1_CHAR_VRAM))
-    sta VMADDH
-    A16
     pla
     rts
 
 ;
 ; Set VRAM address for a BG1 tilemap.
-; Expects A to be the relative tilemap address.
+; Expects X to be a pointer to BGManager
+; Expects Y to be the number of 16-bit words
 ;
-BG1_PrepareTileVRAM:
+BGManager_BG1Next:
     pha
-    clc
-    adc #BG1_TILEMAP_VRAM
-    sta VMADDL
-    pla
-    rts
+    phy
 
-;
-; Set VRAM address for a BG2 tilemap.
-;
-BG2_PrepareCharacterVRAM:
-    pha
-    A8
-    lda #(lobyte(BG2_CHAR_VRAM))
+    lda bg_manager.bg_info.1.next_char_vram, X
     sta VMADDL
-    lda #(hibyte(BG2_CHAR_VRAM))
-    sta VMADDH
-    A16
-    pla
-    rts
+    adc 1, S
+    sta bg_manager.bg_info.1.next_char_vram, X
 
-;
-; Set VRAM address for a BG3 tilemap.
-;
-BG3_PrepareCharacterVRAM:
-    pha
-    A8
-    lda #(lobyte(BG3_CHAR_VRAM))
-    sta VMADDL
-    lda #(hibyte(BG3_CHAR_VRAM))
-    sta VMADDH
-    A16
+    ply
     pla
     rts
 

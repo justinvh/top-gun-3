@@ -31,6 +31,9 @@ OAMManager_Init:
     phy
     phx
 
+    ; Initialize the OAM space
+    jsr OAM_Init
+
     ; Advance the pointer to the first OAM object in the struct
     txa
     adc #OAMManager.oam_objects

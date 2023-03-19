@@ -51,6 +51,12 @@ Game_Init:
     stz game.frame_counter, X       ; Zero frame counter
     call(Engine_Init, game.engine)  ; Equivalent to this->engine.init()
 
+    ; Map expects to have an Engine pointer in Y, so we need to set it
+    txa
+    clc
+    adc #game.engine
+    tay
+
     ; Initialize the initial map
     lda 1, S                        ; Get the this pointer from the stack
     tax                             ; Store it in X for indirect addressing

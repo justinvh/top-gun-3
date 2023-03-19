@@ -70,11 +70,11 @@ nop
     tile instanceof Tile
 .ende
 
-
 ;
 ; Load map data at the X register offset
 ;
 Map_Init:
+    phy
     phx
     A8
 
@@ -142,6 +142,9 @@ Map_Init:
         iny
 
     @MagicSuccess:
+        A16
+        lda 3, S
+        tay
         jsr Map_Load
 
     @Error_BadMagic:
@@ -149,12 +152,14 @@ Map_Init:
 
     A16
     plx
+    ply
     rts
 
 ;
 ; This routine is called after the magic number has been checked
 ; Arguments:
 ;  X = Pointer to the map struct
+;  Y = Pointer to the engine object
 ;
 ; It will load:
 ; (1) The tile data from the map into vram
@@ -162,6 +167,7 @@ Map_Init:
 ;
 Map_Load:
     A16
+    phy
     phx
 
     ; Prepare the X register to point to the sprite data
@@ -171,10 +177,12 @@ Map_Load:
     tax
     jsr Map_LoadSprites
 
-    plx
-    phx
+    ; Bounce the stack X register for getting objects again
+    lda 1, S
+    tax
 
     ; Prepare the X register to point to the palette data
+    ; Keep the Y register as the engine pointer
     clc
     lda map.palette_offset, X
     adc 1, S
@@ -182,8 +190,8 @@ Map_Load:
     jsr Map_LoadPalettes
 
     ; Bounce the stack X register for getting objects again
-    plx
-    phx
+    lda 1, S
+    tax
 
     ; There is far more setup for loading tiles, so pass
     ; the Map object to it
@@ -191,15 +199,18 @@ Map_Load:
 
     ; Restore the stack
     plx
+    ply
     rts
 
 ;
 ; Loads the sprites from the map into vram
 ; Expects that X register points to the sprite sheet object
+; Expects that Y register points to the engine object
 ; Does not need to preserve any register.
 ;
 Map_LoadSprites
     ; This will manipulate the X register, so we need to save it
+    phy
     phx
 
     ; Transfer the size of the sprite sheet into the X register
@@ -208,8 +219,14 @@ Map_LoadSprites
     tay
 
     ; Start loading the sprite sheet data into VRAM
-    ; Reset base address.
-    jsr BG1_PrepareCharacterVRAM
+    ; Expects Y register to be the number of words to allocate
+    lda 3, S
+    tax
+    call(BGManager_BG1Next, engine.bg_manager)
+
+    ; Restore X register
+    lda 1, S
+    tax
 
     A8
 
@@ -226,12 +243,14 @@ Map_LoadSprites
 
     ; Set the background registers
     A16
+    ply
     plx
     rts
 
 ;
 ; Read all the palette data from the map into cgram
 ; Expects that X register points to the palette object
+; Expects that Y register points to the engine object
 ; Does not need to preserve any register.
 ;
 Map_LoadPalettes:
@@ -286,9 +305,11 @@ Map_LoadPalettes:
 ;
 ; Read all the tiles data from the map into bgmap
 ; Expects that X register points to the palette object
+; Expects that Y register points to the engine object
 ; Does not need to preserve any register.
 ;
 Map_LoadTiles:
+    phy
     phx
 
     ; 8-bit background mode for all modes
@@ -325,8 +346,10 @@ Map_LoadTiles:
 
     @LoadTile:
         ; Set the tilemap address
+        clc
         lda tile.index, X
-        jsr BG1_PrepareTileVRAM
+        adc #BG1_TILEMAP_VRAM   ; This is hacky.
+        sta VMADDL
 
         ; Save tile reference
         lda tile.id, X
@@ -346,6 +369,7 @@ Map_LoadTiles:
     ; Restore the stack
     pla
     plx
+    ply
 
     rts
 

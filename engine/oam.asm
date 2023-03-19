@@ -259,6 +259,10 @@ OAM_Test:
 ; Reinitialize all objects in the OAM
 ;
 OAM_Init:
+    pha
+    phx
+    phy
+
     jsr OAM_Test
 
     A8
@@ -292,6 +296,9 @@ OAM_Init:
     stz OAMADDL         ; Set the OAMADDR to 0
 
     A16
+    ply
+    plx
+    pla
     rts
 ;
 ; Get the index of the OAM address for the object.
