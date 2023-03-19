@@ -1,5 +1,6 @@
 .include "game/sprites.i"
 .include "game/maps.i"
+.include "game/fonts.i"
 .include "engine/engine.asm"
 
 .ACCU	16
@@ -57,23 +58,12 @@ Game_Init:
     sta game.map, X                 ; Set the current map
     call_ptr(Map_Init, game.map)    ; Load the map (call through pointer)
 
-    A8_XY16
+    ; Initialize font data
+    phx
+    ldx Font_8x8@Header.w
+    jsr Font_Load
+    plx
 
-    stz OAMADDL         ; Set the OAMADDR to 0
-    stz OAMADDH         ; Set the OAMADDR to 0
-
-    ; Setup the OAM data for our four sprites
-    ;LoadSprite(-8, -8, #$00, #$00, "Sprite1")
-    ;LoadSprite( 0, -8, #$01, #$00, "Sprite2")
-    ;LoadSprite(-8,  0, #$02, #$00, "Sprite3")
-    ;LoadSprite( 0,  0, #$03, #$00, "Sprite4")
-
-    ; Set main screen designation (---sdcba)
-    ; s: sprites, bg4 bg3 bg2 bg1
-    lda #%00000001
-    sta TM
-
-    A16_XY16
     plx
     ply
     pla
