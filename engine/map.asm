@@ -76,7 +76,7 @@ nop
 ;
 Map_Init:
     phx
-    A8_XY16
+    A8
 
     @CheckMapMagicNumber:
         txy
@@ -96,12 +96,12 @@ Map_Init:
         iny
 
     @CheckSpriteMagicNumber:
-        A16_XY16
+        A16
         clc
         lda map.sprite_offset, X
         adc 1, S
         tay
-        A8_XY16
+        A8
 
         lda sprite_sheet.magic, Y
         cmp #ASC('S')
@@ -119,12 +119,12 @@ Map_Init:
         iny
 
     @CheckPaletteMagicNumber:
-        A16_XY16
+        A16
         clc
         lda map.palette_offset, X
         adc 1, S
         tay
-        A8_XY16
+        A8
 
         lda palette.magic, Y
         cmp #ASC('P')
@@ -147,7 +147,7 @@ Map_Init:
     @Error_BadMagic:
         nop
 
-    A16_XY16
+    A16
     plx
     rts
 
@@ -161,7 +161,7 @@ Map_Init:
 ; (2) The palette data into cgram
 ;
 Map_Load:
-    A16_XY16
+    A16
     phx
 
     ; Prepare the X register to point to the sprite data
@@ -208,11 +208,10 @@ Map_LoadSprites
     tay
 
     ; Start loading the sprite sheet data into VRAM
-    A8_XY16
-
     ; Reset base address.
-    stz VMADDL
-    stz VMADDH
+    jsr BG1_PrepareCharacterVRAM
+
+    A8
 
     @VRAMLoop:                      ; Loop through all X bytes of sprite data
         lda sprite_sheet.data, X    ; Load bitplane 0/2
@@ -226,7 +225,7 @@ Map_LoadSprites
         bne @VRAMLoop               ; Loop if we haven't reached 0
 
     ; Set the background registers
-    A16_XY16
+    A16
     plx
     rts
 
@@ -236,7 +235,7 @@ Map_LoadSprites
 ; Does not need to preserve any register.
 ;
 Map_LoadPalettes:
-    A16_XY16
+    A16
     phx
 
     ; Transfer the size of the palette into the X register
@@ -245,7 +244,7 @@ Map_LoadPalettes:
     lda #$20
     tay
 
-    A8_XY16
+    A8
     lda #$00
     sta CGADD                   ; Set CGADD to 0x80
     @BGCGRAMLoop:               ; Loop through all X bytes of color data
@@ -259,11 +258,11 @@ Map_LoadPalettes:
         dey                     ; Decrement counter
         bne @BGCGRAMLoop        ; Loop if not
 
-    A16_XY16
+    A16
     plx
     phx
 
-    A8_XY16
+    A8
     lda #$20
     tay
     lda #$80
@@ -279,7 +278,7 @@ Map_LoadPalettes:
         dey                     ; Decrement counter
         bne @ObjCGRAMLoop       ; Loop if not
 
-    A16_XY16
+    A16
     plx
 
     rts
@@ -293,22 +292,11 @@ Map_LoadTiles:
     phx
 
     ; 8-bit background mode for all modes
-    A8_XY16
-    lda #%00000001
-    sta BGMODE
-
-    ; 16-bit write to VMADDL
+    A8
     lda #$80
     sta VMAIN
 
-    lda #>$1000 ; HACK(JBVH): This should be the address of the sprite sheet
-    sta BG1SC
-    stz BG12NBA
-
-    lda #>$1400 ; HACK(JBVH): This should be the address of the sprite sheet
-    sta BG2SC
-
-    A16_XY16
+    A16
     ; Put the number of tiles on the stack
     lda map.num_tiles, X
     tay
@@ -338,8 +326,7 @@ Map_LoadTiles:
     @LoadTile:
         ; Set the tilemap address
         lda tile.index, X
-        adc #$1000     ;1, S       ; Add the sprite sheet size
-        sta VMADDL
+        jsr BG1_PrepareTileVRAM
 
         ; Save tile reference
         lda tile.id, X

@@ -11,3 +11,4 @@ bsnes/
 out/
 *.lst
 *.sym
+*venv*

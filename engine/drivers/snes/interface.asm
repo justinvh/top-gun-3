@@ -1,4 +1,5 @@
 .include "engine/oam.asm"
+.include "engine/bg.asm"
 
 .section "SNES_Interface" bank 0 slot "ROM" semifree
 
@@ -17,7 +18,7 @@ nop
     phx
     phy
 
-    A8_XY16
+    A8
 
     ; Disable timers, NMI, and auto-joyread
     stz NMITIMEN
@@ -74,13 +75,13 @@ nop
         stz VMADDL
 
         ; Set DMA source address to be a byte on the stack
-        A16_XY16
+        A16
         lda #0      ; Store 0 into the current stack pointer
         pha
         pla
         tsc         ; Copy stack pointer to accumulator
         sta A1T0L   ; Tell the DMA engine to read from the stack
-        A8_XY16
+        A8
 
         ; Set DMA source address bank from stack
         phb         ; Save bank
@@ -103,8 +104,9 @@ nop
         sta CGADD
         ZeroRegister(CGDATA, #$0200, "CGDATA")
 
-    A16_XY16
+    A16
 
+    jsr BG_Init
     jsr OAM_Init
 
     ply

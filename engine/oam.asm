@@ -57,6 +57,16 @@
 .section "OAM" bank 0 slot "ROM"
 nop
 
+; OAM page 0 can be aligned at $0000, $2000, $4000, or $6000 word
+; OAM page 1 can be aligned at page 0 + $1000, $2000, $3000, or $4000 word
+.define OAM_PAGE0_ADDR $6000          ; BBB = 011 ($6000)
+.define OAM_PAGE1_ADDR $7000          ; PP  = 00  ($6000 + $1000)
+;.define OAM_DEFAULT_OBJSEL %00000011  ; 8x8/16x16 Page 0 @ $6000, Page 1 @ $7000
+
+;  (intentionally aligned with BG1 for testing)
+; Remember these are 16-bit word addresses
+.define OAM_DEFAULT_OBJSEL %00000001  ; 8x8/16x16 Page 0 @ $2000, Page 1 @ $3000
+
 ;
 ; OAM Object Properties
 ; This does take up more space, but it is easier to interpret
@@ -251,9 +261,15 @@ OAM_Test:
 OAM_Init:
     jsr OAM_Test
 
+    A8
+
     stz OAMADDH         ; Set the OAMADDR to 0
     stz OAMADDL         ; Set the OAMADDR to 0
-    stz OBSEL           ; Reinitialize object select
+
+    ; Setup the default object selection of OAM address pages.
+    lda #OAM_DEFAULT_OBJSEL
+    sta OBSEL
+
     ; Clear out the standard 4 bytes for each object
     ; This will clear OAM address data 000 - 255 for D15 - D0
     ldx #128            ; 128 objects
@@ -274,6 +290,8 @@ OAM_Init:
         bne @LoopRegion2
     stz OAMADDH         ; Set the OAMADDR to 0
     stz OAMADDL         ; Set the OAMADDR to 0
+
+    A16
     rts
 ;
 ; Get the index of the OAM address for the object.

@@ -43,7 +43,7 @@ Engine_VBlank:
     call(OAMManager_VBlank, engine.oam_manager)
 
     ;        S4321
-    lda #%00010001
+    lda #%00010111
     sta TM
 
     pla
