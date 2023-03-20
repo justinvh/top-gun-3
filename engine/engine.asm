@@ -2,6 +2,7 @@
 .include "engine/input.asm"
 .include "engine/map.asm"
 .include "engine/oam_manager.asm"
+.include "engine/timer.asm"
 
 .section "Engine" BANK 0 SLOT "ROM"
 
@@ -12,6 +13,7 @@
     oam_manager instanceof OAMManager
     bg_manager instanceof BGManager
     font_manager instanceof FontManager
+    timer_manager instanceof TimerManager
     test_object_ptr dw ; Pointer to the requested OAM object
 .endst
 
@@ -46,6 +48,9 @@ Engine_Frame:
 
 Engine_VBlank:
     pha
+
+    ; Increase the timer by 17ms for every vblank
+    call(TimerManager_Tick, engine.timer_manager)
 
     jsr Engine_MoveTestObject
     call(Input_VBlank, engine.input)
