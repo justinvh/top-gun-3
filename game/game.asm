@@ -1,6 +1,7 @@
 .include "game/sprites.i"
 .include "game/maps.i"
 .include "game/fonts.i"
+.include "game/strings.i"
 .include "engine/engine.asm"
 
 .ACCU	16
@@ -64,15 +65,45 @@ Game_Init:
     sta game.map, X                 ; Set the current map
     call_ptr(Map_Init, game.map)    ; Load the map (call through pointer)
 
-    ; Initialize font data
-    phx
-    ldx Font_8x8@Header.w
-    jsr Font_Load
-    plx
+    ; Initialize all font data
+    jsr Game_FontInit
 
     plx
     ply
     pla
+    rts
+
+;
+; Initialize all font data
+;
+Game_FontInit:
+    pha
+    phx
+    phy
+
+    ; Setup pointer for font manager
+    txa
+    adc #game.engine.font_manager
+    tax
+
+    ; Load Font 8x8 into Slot 0
+    lda #Font_8x8@Header.w   ; Argument 1 (pointer to font data)
+    jsr FontManager_Load
+    txa
+    adc #font_manager.font_vram_info.1
+    sta font_manager.font_draw_info.font_vram_info_ptr, X
+
+    ; Provide pointer
+    lda #Text_TopGun3
+    sta font_manager.font_draw_info.data_ptr, X
+
+    ; Test drawing
+    jsr FontManager_Draw
+
+    ply
+    plx
+    pla
+
     rts
 
 ;

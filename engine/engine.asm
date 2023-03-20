@@ -11,6 +11,7 @@
     input instanceof Input
     oam_manager instanceof OAMManager
     bg_manager instanceof BGManager
+    font_manager instanceof FontManager
     test_object_ptr dw ; Pointer to the requested OAM object
 .endst
 
@@ -26,6 +27,12 @@ Engine_Init:
     call(OAMManager_Init, engine.oam_manager)
     call(BGManager_Init, engine.bg_manager)
     call(Input_Init, engine.input)
+
+    ; Prepare Font Manager and initialize it
+    txa
+    adc #engine.bg_manager
+    sta engine.font_manager.bg_manager_ptr, X
+    call(FontManager_Init, engine.font_manager)
 
     ; Test functions
     jsr Engine_InitTestObject
