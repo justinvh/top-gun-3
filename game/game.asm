@@ -15,6 +15,7 @@ nop ; This is here to prevent the compiler from optimizing the label away
     frame_counter dw            ; Frame counter (increments every frame)
     map dw                      ; Pointer to the map struct (current map)
     engine instanceof Engine    ; Pointer to the engine struct
+    test_timer_ptr dw           ; Pointer to the requested test timer
 .endst
 
 ; Intentionally offset at $0000 since we will use the X register to
@@ -35,6 +36,19 @@ Game_Frame:
     inc game.frame_counter, X       ; Increment frame counter
     call(Engine_Frame, game.engine) ; Equivalent to this->engine.frame()
 
+    ; Check if triggered and reset if so
+    call_ptr(Timer_Triggered, game.test_timer_ptr)
+    cpy #1
+    beq @TimerTriggered
+    bra @TimerNotTriggered
+
+    @TimerTriggered:
+        nop
+        ;brk
+
+    @TimerNotTriggered:
+        nop
+
     plx
     pla
     rts
@@ -51,6 +65,15 @@ Game_Init:
 
     stz game.frame_counter, X       ; Zero frame counter
     call(Engine_Init, game.engine)  ; Equivalent to this->engine.init()
+
+    ; Request a timer to use
+    call(TimerManager_Request, game.engine.timer_manager)
+    tya
+    sta game.test_timer_ptr, X
+
+    ; Initialize to a 100ms timer
+    ldy #100
+    call_ptr(Timer_Init, game.test_timer_ptr)
 
     ; Map expects to have an Engine pointer in Y, so we need to set it
     txa
