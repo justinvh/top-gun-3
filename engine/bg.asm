@@ -55,7 +55,7 @@ BGManager_Init:
 
     ; BG3 is 8x8 characters at 32x32 tiles at 2BPP
     lda #BG3_CHAR_VRAM
-    sta bg_manager.bg_info.2.next_char_vram, X
+    sta bg_manager.bg_info.3.next_char_vram, X
 
     A8
 
@@ -96,8 +96,11 @@ BGManager_Init:
 ; Expects Y to be the number of 16-bit words
 ;
 BGManager_BG1Next:
+    phb
     pha
     phy
+
+    DB0
 
     lda bg_manager.bg_info.1.next_char_vram, X
     sta VMADDL
@@ -106,6 +109,29 @@ BGManager_BG1Next:
 
     ply
     pla
+    plb
+    rts
+
+;
+; Set VRAM address for a BG3 tilemap.
+; Expects X to be a pointer to BGManager
+; Expects Y to be the number of 16-bit words
+;
+BGManager_BG3Next:
+    phb
+    pha
+    phy
+
+    DB0
+
+    lda bg_manager.bg_info.3.next_char_vram, X
+    sta VMADDL
+    adc 1, S
+    sta bg_manager.bg_info.3.next_char_vram, X
+
+    ply
+    pla
+    plb
     rts
 
 .ends

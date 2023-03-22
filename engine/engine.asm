@@ -2,15 +2,19 @@
 .include "engine/input.asm"
 .include "engine/map.asm"
 .include "engine/oam_manager.asm"
+.include "engine/timer.asm"
 
 .section "Engine" BANK 0 SLOT "ROM"
 
 .struct Engine
     frame_counter dw
-    snes instanceof SNES
-    input instanceof Input
-    oam_manager instanceof OAMManager
-    bg_manager instanceof BGManager
+    snes            instanceof SNES
+    input           instanceof Input
+    oam_manager     instanceof OAMManager
+    bg_manager      instanceof BGManager
+    font_manager    instanceof FontManager
+    timer_manager   instanceof TimerManager
+    map_manager     instanceof MapManager
     test_object_ptr dw ; Pointer to the requested OAM object
 .endst
 
@@ -27,8 +31,29 @@ Engine_Init:
     call(BGManager_Init, engine.bg_manager)
     call(Input_Init, engine.input)
 
+    ; Prepare Font and Map Manager and initialize it
+    txa
+    adc #engine.bg_manager
+
+    ; Background managers for both map and font
+    sta engine.map_manager.bg_manager_ptr, X
+    sta engine.font_manager.bg_manager_ptr, X
+
+    call(MapManager_Init, engine.map_manager)
+
+    ; Request a timer for the font manager to use
+    call(TimerManager_Request, game.engine.timer_manager)
+    tya
+    sta engine.font_manager.timer_ptr, X
+
+    call(FontManager_Init, engine.font_manager)
+
     ; Test functions
     jsr Engine_InitTestObject
+
+    ;        S4321
+    lda #%00010111
+    sta TM
 
     ply
     rts
@@ -40,13 +65,13 @@ Engine_Frame:
 Engine_VBlank:
     pha
 
+    ; Increase the timer by 17ms for every vblank
+    call(TimerManager_Tick, engine.timer_manager)
+
     jsr Engine_MoveTestObject
     call(Input_VBlank, engine.input)
     call(OAMManager_VBlank, engine.oam_manager)
-
-    ;        S4321
-    lda #%00010111
-    sta TM
+    call(FontManager_VBlank, engine.font_manager)
 
     pla
     rts

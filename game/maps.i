@@ -1,5 +1,8 @@
-.section "Maps" bank 0 slot "ROM"
+.macro incmap ARGS _bank, _name
+.define Map_{_name}@Bank _bank
+Map_{_name}@Data: .incbin resources/maps/{_name}.bin
+.endm
 
-Map_Demo: .incbin "resources/maps/Demo.bin"
-
+.section "Maps" bank 1 slot "ROM"
+incmap(1, "Demo")
 .ends

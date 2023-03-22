@@ -68,6 +68,34 @@
     rep #%00100000
 .endm
 
+; HACK: Hack to set the DB register to 1. You should set phb/plb in the routine.
+.macro DB1
+    A16
+    pha
+
+    A8
+    lda #1
+    pha
+    plb
+
+    A16
+    pla
+.endm
+
+; HACK: Hack to set the DB register to 0. You should set phb/plb in the routine.
+.macro DB0
+    A16
+    pha
+
+    A8
+    lda #0
+    pha
+    plb
+
+    A16
+    pla
+.endm
+
 ;
 ; Zero a range of registers
 ; Arguments:
@@ -157,6 +185,25 @@
 .endm
 
 ;
+; Long Call a function with a "this" pointer.
+; 30 cycle overhead.
+; Arguments:
+;  - FUNCTION: The function to call
+;  - OFFSET: The offset of the "this" pointer
+;
+.macro long_call ARGS FUNCTION, OFFSET
+    phx             ; Save and restore the X register (3 cycles)
+    pha             ; Preserve the accumulator (3 cycles)
+    txa             ; Load the "this" pointer (2 cycles)
+    clc             ; Ensure carry bit is clear (2 cycles)
+    adc #(OFFSET)   ; Add the "this" pointer offset (2 cycles)
+    tax             ; Copy the accumulator to the X register (2 cycles)
+    pla             ; Restore the accumulator (4 cycles)
+    jsl FUNCTION    ; Call the function (6 cycles)
+    plx             ; Restore the old X register (4 cycles)
+.endm
+
+;
 ; Call a function with a "this" pointer through the pointer
 ; 34-cycle overhead.
 ; Arguments:
@@ -176,6 +223,28 @@
     jsr FUNCTION    ; Call the function (6 cycles)
     plx             ; Restore the X register (4 cycles)
 .endm
+
+;
+; Long call a function with a "this" pointer through the pointer
+; 36-cycle overhead.
+; Arguments:
+;  - FUNCTION: The function to call
+;  - OFFSET: The offset of the "this" pointer
+;
+.macro long_call_ptr ARGS FUNCTION, OFFSET
+    phx             ; Preserve the X register (3 cycles)
+    pha             ; Preserve the accumulator (3 cycles)
+    txa             ; Load the "this" pointer (2 cycles)
+    clc             ; Ensure carry bit is clear (2 cycles)
+    adc #(OFFSET)   ; Add the "this" pointer offset (2 cycles)
+    tax             ; Copy the accumulator to the X register (2 cycles)
+    lda $0, X       ; Get the pointer at the address (4 cycles)
+    tax             ; Now the pointer is in the X register (2 cycles)
+    pla             ; Restore the accumulator (4 cycles)
+    jsl FUNCTION.w  ; Call the function (8 cycles)
+    plx             ; Restore the X register (4 cycles)
+.endm
+
 
 ;
 ; Memset a block of memory

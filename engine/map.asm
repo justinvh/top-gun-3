@@ -1,5 +1,6 @@
-.ACCU	16
-.INDEX	16
+.ACCU   16
+.INDEX  16
+.16bit
 
 .section "Map" bank 0 slot "ROM"
 
@@ -55,6 +56,16 @@ nop
     object_offset  dw ; Where all the objects in the map go
 .endst
 
+;
+; Map manager object
+; Used to manage loading and manipulating the current map
+; 
+.struct MapManager
+    bg_manager_ptr dw   ; Pointer to the engine object
+    map_bank       db   ; 8-bit bank number of the map
+    map_ptr        dw   ; 16-bit pointer to the map struct
+.endst
+
 ; Intentionally offset at $0000 since we will use the X register to
 ; point to the map struct when allocated
 .enum $0000
@@ -69,9 +80,66 @@ nop
 .enum $0000
     tile instanceof Tile
 .ende
+.enum $0000
+    map_manager instanceof MapManager
+.ende
+
+;
+; Initialize the map manager
+; Expects X register to be the pointer to the map manager
+;
+MapManager_Init:
+    pha
+
+    A8
+    stz map_manager.map_bank, X ; Bank
+
+    A16
+    stz map_manager.map_ptr, X ; High
+
+    pla
+    rts
+
+;
+; Expects X register to be the pointer to the map manager
+; Expects Y register to be the 16-bit map pointer
+; Expects A register to be the 8-bit bank number
+MapManager_Load:
+    phb
+    A8
+    sta map_manager.map_bank, X ; Bank
+
+    ; Store the high and low bits of the map pointer
+    A16
+    phy ; Save the Y register so we can put it into the accumulator later
+    tya ; Transfer the 16-bit pointer to the accumulator
+    sta map_manager.map_ptr, X ; High + Low
+
+    ; Map init expects access to bg manager ptr
+    lda map_manager.bg_manager_ptr, X
+    tay
+
+    ; Set the data bank register to the correct bank
+    A8
+    lda map_manager.map_bank, X
+    pha
+    plb
+
+    ; Set the X register to point to the map struct in the correct bank
+    A16
+    pla ; This will put the 16-bit map pointer into the accumulator
+    tax ; Transfer the accumulator to the X register for indexing
+
+    ; Call the map init routine
+    jsr Map_Init
+
+    plb
+    rts
 
 ;
 ; Load map data at the X register offset
+; Expects that X register points to the map struct
+; Expcts that Y register points to the bg_manager_ptr object
 ;
 Map_Init:
     phy
@@ -222,7 +290,7 @@ Map_LoadSprites
     ; Expects Y register to be the number of words to allocate
     lda 3, S
     tax
-    call(BGManager_BG1Next, engine.bg_manager)
+    jsr BGManager_BG1Next
 
     ; Restore X register
     lda 1, S
@@ -231,11 +299,11 @@ Map_LoadSprites
     A8
 
     @VRAMLoop:                      ; Loop through all X bytes of sprite data
-        lda sprite_sheet.data, X    ; Load bitplane 0/2
+        lda sprite_sheet.data.w, X    ; Load bitplane 0/2
         sta VMDATAL                 ; Store data to VRAM
         inx                         ; Increment X register for the data
         dey                         ; Decrement loop counter
-        lda sprite_sheet.data, X    ; Load bitplane 1/3
+        lda sprite_sheet.data.w, X    ; Load bitplane 1/3
         sta VMDATAH                 ; Store data to VRAM
         inx                         ; Increment X register for the data
         dey                         ; Decrement loop counter
@@ -287,11 +355,11 @@ Map_LoadPalettes:
     lda #$80
     sta CGADD                   ; Set CGADD to 0x80
     @ObjCGRAMLoop:              ; Loop through all X bytes of color data
-        lda palette.data, X     ; Low byte color data
+        lda palette.data.w, X   ; Low byte color data
         sta CGDATA              ; Store data to CGRAM
         inx                     ; Increment data offset
         dey                     ; Decrement counter
-        lda palette.data, X     ; High byte color data
+        lda palette.data.w, X   ; High byte color data
         sta CGDATA              ; Store data to CGRAM
         inx                     ; Increment data offset
         dey                     ; Decrement counter
@@ -373,5 +441,5 @@ Map_LoadTiles:
 
     rts
 
-
+.8bit
 .ends
