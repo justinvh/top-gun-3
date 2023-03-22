@@ -14,7 +14,6 @@ nop ; This is here to prevent the compiler from optimizing the label away
 .struct Game
     frame_counter dw            ; Frame counter (increments every frame)
     engine instanceof Engine    ; Pointer to the engine struct
-    test_timer_ptr dw           ; Pointer to the requested test timer
     test_ui_ptr dw              ; Pointer to the requested test UI component
 .endst
 
@@ -32,23 +31,12 @@ nop ; This is here to prevent the compiler from optimizing the label away
 Game_Frame:
     pha
     phx
+    phy
 
     inc game.frame_counter, X       ; Increment frame counter
     call(Engine_Frame, game.engine) ; Equivalent to this->engine.frame()
 
-    ; Check if triggered and reset if so
-    call_ptr(Timer_Triggered, game.test_timer_ptr)
-    cpy #1
-    beq @TimerTriggered
-    bra @TimerNotTriggered
-
-    @TimerTriggered:
-        nop
-        ;brk
-
-    @TimerNotTriggered:
-        nop
-
+    ply
     plx
     pla
     rts
