@@ -8,12 +8,13 @@
 
 .struct Engine
     frame_counter dw
-    snes instanceof SNES
-    input instanceof Input
-    oam_manager instanceof OAMManager
-    bg_manager instanceof BGManager
-    font_manager instanceof FontManager
-    timer_manager instanceof TimerManager
+    snes            instanceof SNES
+    input           instanceof Input
+    oam_manager     instanceof OAMManager
+    bg_manager      instanceof BGManager
+    font_manager    instanceof FontManager
+    timer_manager   instanceof TimerManager
+    map_manager     instanceof MapManager
     test_object_ptr dw ; Pointer to the requested OAM object
 .endst
 
@@ -30,11 +31,22 @@ Engine_Init:
     call(BGManager_Init, engine.bg_manager)
     call(Input_Init, engine.input)
 
-    ; Prepare Font Manager and initialize it
+    ; Prepare Font and Map Manager and initialize it
     txa
     adc #engine.bg_manager
+
+    ; Background managers for both map and font
+    sta engine.map_manager.bg_manager_ptr, X
     sta engine.font_manager.bg_manager_ptr, X
-    call(FontManager_Init, engine.font_manager)
+
+    call(MapManager_Init, engine.map_manager)
+
+    ; Request a timer for the font manager to use
+    call(TimerManager_Request, game.engine.timer_manager)
+    tya
+    sta engine.font_manager.timer_ptr, X
+
+    long_call(FontManager_Init, engine.font_manager)
 
     ; Test functions
     jsr Engine_InitTestObject

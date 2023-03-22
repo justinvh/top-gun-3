@@ -110,7 +110,7 @@ BGManager_BG1Next:
     ply
     pla
     plb
-    rtl
+    rts
 
 ;
 ; Set VRAM address for a BG3 tilemap.
@@ -132,6 +132,6 @@ BGManager_BG3Next:
     ply
     pla
     plb
-    rtl
+    rts
 
 .ends

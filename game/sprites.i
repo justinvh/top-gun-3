@@ -1,6 +1,8 @@
-.section "Sprites" bank 0 slot "ROM"
+.section "Sprites" bank 1 slot "ROM"
 
-SpriteData: .incbin "resources/sprites/TopGun.bin"
-ColorData:  .incbin "resources/sprites/TopGun.pal"
+nop
+
+;SpriteData: .incbin "resources/sprites/TopGun.bin"
+;ColorData:  .incbin "resources/sprites/TopGun.pal"
 
 .ends

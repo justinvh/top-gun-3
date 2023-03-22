@@ -1,11 +1,8 @@
-;
-; HEY! This is part of Bank 1, so it is next to the map data
-;
 .ACCU   16
 .INDEX  16
 .16bit
 
-.section "Map" bank 1 slot "ROM"
+.section "Map" bank 0 slot "ROM"
 
 nop
 
@@ -59,6 +56,16 @@ nop
     object_offset  dw ; Where all the objects in the map go
 .endst
 
+;
+; Map manager object
+; Used to manage loading and manipulating the current map
+; 
+.struct MapManager
+    bg_manager_ptr dw   ; Pointer to the engine object
+    map_bank       db   ; 8-bit bank number of the map
+    map_ptr        dw   ; 16-bit pointer to the map struct
+.endst
+
 ; Intentionally offset at $0000 since we will use the X register to
 ; point to the map struct when allocated
 .enum $0000
@@ -73,24 +80,71 @@ nop
 .enum $0000
     tile instanceof Tile
 .ende
+.enum $0000
+    map_manager instanceof MapManager
+.ende
+
+;
+; Initialize the map manager
+; Expects X register to be the pointer to the map manager
+;
+MapManager_Init:
+    pha
+
+    A8
+    stz map_manager.map_bank, X ; Bank
+
+    A16
+    stz map_manager.map_ptr, X ; High
+
+    pla
+    rts
+
+;
+; Expects X register to be the pointer to the map manager
+; Expects Y register to be the 16-bit map pointer
+; Expects A register to be the 8-bit bank number
+MapManager_Load:
+    phb
+    A8
+    sta map_manager.map_bank, X ; Bank
+
+    ; Store the high and low bits of the map pointer
+    A16
+    phy ; Save the Y register so we can put it into the accumulator later
+    tya ; Transfer the 16-bit pointer to the accumulator
+    sta map_manager.map_ptr, X ; High + Low
+
+    ; Map init expects access to bg manager ptr
+    lda map_manager.bg_manager_ptr, X
+    tay
+
+    ; Set the data bank register to the correct bank
+    A8
+    lda map_manager.map_bank, X
+    pha
+    plb
+
+    ; Set the X register to point to the map struct in the correct bank
+    A16
+    pla ; This will put the 16-bit map pointer into the accumulator
+    tax ; Transfer the accumulator to the X register for indexing
+
+    ; Call the map init routine
+    jsr Map_Init
+
+    plb
+    rts
 
 ;
 ; Load map data at the X register offset
 ; Expects that X register points to the map struct
-; Expects this subroutine to be called as long jump
+; Expcts that Y register points to the bg_manager_ptr object
 ;
 Map_Init:
-    .16bit
-
-    phd
-    phb
     phy
     phx
     A8
-
-    ; HACK: This is a hack to get the right X and Y register values
-    ; Manipulate the data bank register to point to 1 (since this is bank 1)
-    DB1
 
     @CheckMapMagicNumber:
         txy
@@ -167,9 +221,7 @@ Map_Init:
     A16
     plx
     ply
-    plb
-    pld
-    rtl
+    rts
 
 ;
 ; This routine is called after the magic number has been checked
@@ -238,7 +290,7 @@ Map_LoadSprites
     ; Expects Y register to be the number of words to allocate
     lda 3, S
     tax
-    long_call(BGManager_BG1Next, engine.bg_manager)
+    jsr BGManager_BG1Next
 
     ; Restore X register
     lda 1, S

@@ -13,9 +13,9 @@ nop ; This is here to prevent the compiler from optimizing the label away
 
 .struct Game
     frame_counter dw            ; Frame counter (increments every frame)
-    map dw                      ; Pointer to the map struct (current map)
     engine instanceof Engine    ; Pointer to the engine struct
     test_timer_ptr dw           ; Pointer to the requested test timer
+    test_ui_ptr dw              ; Pointer to the requested test UI component
 .endst
 
 ; Intentionally offset at $0000 since we will use the X register to
@@ -66,27 +66,10 @@ Game_Init:
     stz game.frame_counter, X       ; Zero frame counter
     call(Engine_Init, game.engine)  ; Equivalent to this->engine.init()
 
-    ; Request a timer to use
-    call(TimerManager_Request, game.engine.timer_manager)
-    tya
-    sta game.test_timer_ptr, X
-
-    ; Initialize to a 100ms timer
-    ldy #100
-    call_ptr(Timer_Init, game.test_timer_ptr)
-
-    ; Map expects to have an Engine pointer in Y, so we need to set it
-    txa
-    clc
-    adc #game.engine
-    tay
-
-    ; Initialize the initial map
-    lda 1, S                        ; Get the this pointer from the stack
-    tax                             ; Store it in X for indirect addressing
-    lda #Map_Demo                   ; Load the address of the demo map
-    sta game.map, X                 ; Set the current map
-    long_call_ptr(Map_Init, game.map)    ; Load the map (call through pointer)
+    ; Load a demo map
+    lda #Map_Demo_Bank
+    ldy #Map_Demo
+    call(MapManager_Load, game.engine.map_manager)
 
     ; Initialize all font data
     jsr Game_FontInit
