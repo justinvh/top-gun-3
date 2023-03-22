@@ -93,9 +93,6 @@ Main:
 ; blanking period begins (and the interrupt is enabled)
 ;
 Main_VBlank:
-    ; read NMI status, acknowledge NMI
-    A8_XY16
-    lda RDNMI
 
     ; Push CPU registers to stack
     A16_XY16
@@ -111,20 +108,33 @@ Main_VBlank:
     lda #0
     tcd
 
+    ; read NMI status, acknowledge NMI, and turn off screen
+    A8
+    lda RDNMI
+    lda #$8F
+    sta INIDISP
+
     ; Ideally, we only do these when the Main_Loop says it's done
     ; handling a game frame, then we can do the rendering and input
     ; and otherwise skip this ISR.
+    A16
     ldx ($0000)     ; Get the global game object pointer
     jsr Game_VBlank ; Expects X to be the "this" pointer
 
+    ; Re-enable the screen
+    A8
+    lda #$0F
+    sta INIDISP
+
     ; Restore CPU registers
+    A16
     pld
     plb
     ply
     plx
     pla
 
-    ; Return from the interrupt
+    ; Return from NMI
     rti
 
 EmptyHandler:
