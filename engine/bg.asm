@@ -96,8 +96,11 @@ BGManager_Init:
 ; Expects Y to be the number of 16-bit words
 ;
 BGManager_BG1Next:
+    phb
     pha
     phy
+
+    DB0
 
     lda bg_manager.bg_info.1.next_char_vram, X
     sta VMADDL
@@ -106,7 +109,8 @@ BGManager_BG1Next:
 
     ply
     pla
-    rts
+    plb
+    rtl
 
 ;
 ; Set VRAM address for a BG3 tilemap.
@@ -114,8 +118,11 @@ BGManager_BG1Next:
 ; Expects Y to be the number of 16-bit words
 ;
 BGManager_BG3Next:
+    phb
     pha
     phy
+
+    DB0
 
     lda bg_manager.bg_info.3.next_char_vram, X
     sta VMADDL
@@ -124,6 +131,7 @@ BGManager_BG3Next:
 
     ply
     pla
-    rts
+    plb
+    rtl
 
 .ends

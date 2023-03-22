@@ -1,7 +1,11 @@
-.ACCU	16
-.INDEX	16
+;
+; HEY! This is part of Bank 1, so it is next to the map data
+;
+.ACCU   16
+.INDEX  16
+.16bit
 
-.section "Map" bank 0 slot "ROM"
+.section "Map" bank 1 slot "ROM"
 
 nop
 
@@ -72,11 +76,21 @@ nop
 
 ;
 ; Load map data at the X register offset
+; Expects that X register points to the map struct
+; Expects this subroutine to be called as long jump
 ;
 Map_Init:
+    .16bit
+
+    phd
+    phb
     phy
     phx
     A8
+
+    ; HACK: This is a hack to get the right X and Y register values
+    ; Manipulate the data bank register to point to 1 (since this is bank 1)
+    DB1
 
     @CheckMapMagicNumber:
         txy
@@ -153,7 +167,9 @@ Map_Init:
     A16
     plx
     ply
-    rts
+    plb
+    pld
+    rtl
 
 ;
 ; This routine is called after the magic number has been checked
@@ -222,7 +238,7 @@ Map_LoadSprites
     ; Expects Y register to be the number of words to allocate
     lda 3, S
     tax
-    call(BGManager_BG1Next, engine.bg_manager)
+    long_call(BGManager_BG1Next, engine.bg_manager)
 
     ; Restore X register
     lda 1, S
@@ -231,11 +247,11 @@ Map_LoadSprites
     A8
 
     @VRAMLoop:                      ; Loop through all X bytes of sprite data
-        lda sprite_sheet.data, X    ; Load bitplane 0/2
+        lda sprite_sheet.data.w, X    ; Load bitplane 0/2
         sta VMDATAL                 ; Store data to VRAM
         inx                         ; Increment X register for the data
         dey                         ; Decrement loop counter
-        lda sprite_sheet.data, X    ; Load bitplane 1/3
+        lda sprite_sheet.data.w, X    ; Load bitplane 1/3
         sta VMDATAH                 ; Store data to VRAM
         inx                         ; Increment X register for the data
         dey                         ; Decrement loop counter
@@ -287,11 +303,11 @@ Map_LoadPalettes:
     lda #$80
     sta CGADD                   ; Set CGADD to 0x80
     @ObjCGRAMLoop:              ; Loop through all X bytes of color data
-        lda palette.data, X     ; Low byte color data
+        lda palette.data.w, X   ; Low byte color data
         sta CGDATA              ; Store data to CGRAM
         inx                     ; Increment data offset
         dey                     ; Decrement counter
-        lda palette.data, X     ; High byte color data
+        lda palette.data.w, X   ; High byte color data
         sta CGDATA              ; Store data to CGRAM
         inx                     ; Increment data offset
         dey                     ; Decrement counter
@@ -373,5 +389,5 @@ Map_LoadTiles:
 
     rts
 
-
+.8bit
 .ends

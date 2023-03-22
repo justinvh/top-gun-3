@@ -84,9 +84,9 @@ Game_Init:
     ; Initialize the initial map
     lda 1, S                        ; Get the this pointer from the stack
     tax                             ; Store it in X for indirect addressing
-    lda #(Map_Demo)                 ; Load the address of the demo map
+    lda #Map_Demo                   ; Load the address of the demo map
     sta game.map, X                 ; Set the current map
-    call_ptr(Map_Init, game.map)    ; Load the map (call through pointer)
+    long_call_ptr(Map_Init, game.map)    ; Load the map (call through pointer)
 
     ; Initialize all font data
     jsr Game_FontInit
