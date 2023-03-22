@@ -67,12 +67,15 @@ Game_Init:
     call(Engine_Init, game.engine)  ; Equivalent to this->engine.init()
 
     ; Load a demo map
-    lda #Map_Demo_Bank
-    ldy #Map_Demo
+    lda #Map_Demo@Bank
+    ldy #Map_Demo@Data
     call(MapManager_Load, game.engine.map_manager)
 
     ; Initialize all font data
     jsr Game_FontInit
+
+    ; Render one frame to initialize the screen
+    jsr Game_VBlank
 
     plx
     ply
@@ -93,19 +96,48 @@ Game_FontInit:
     tax
 
     ; Load Font 8x8 into Slot 0
-    lda #Font_8x8@Header.w   ; Argument 1 (pointer to font data)
+    lda #Font_8x8@Bank
+    ldy #Font_8x8@Data
     jsr FontManager_Load
+
+    ;Save pointer to font VRAM info
     txa
-    adc #font_manager.font_vram_info.1
-    sta font_manager.font_draw_info.font_vram_info_ptr, X
+    adc #font_manager.fonts.1
+    pha
 
-    ; Provide pointer
-    lda #Text_TopGun3
-    sta font_manager.font_draw_info.data_ptr, X
+    ; Request a FontSurface
+    jsr FontManager_RequestSurface
 
-    ; Test drawing
-    jsr FontManager_Draw
+    ; Save pointer to test ui component
+    phx
+    lda 3, S
+    tax
+    tya
+    sta game.test_ui_ptr, X
+    plx
 
+    ; Store pointer to font VRAM info
+    pla
+    tyx
+    sta font_surface.font_ptr, X
+
+    ; Enable the font surface (this will cause it to be drawn)
+    lda #1
+    sta font_surface.enabled, X
+
+    ; Provide pointer to text to draw
+    lda #Text_TopGun3@Data
+    sta font_surface.data_ptr, X
+
+    ; Provide bank of text to draw
+    A8
+    lda #Text_TopGun3@Bank
+    sta font_surface.data_bank, X
+
+    ; Mark surface dirty
+    stz font_surface.clean, X
+
+    A16
     ply
     plx
     pla

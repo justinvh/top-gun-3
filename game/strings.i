@@ -1,13 +1,16 @@
-.section "Strings" bank 0 slot "ROM"
+.macro definetext args _bank, _short, _text
+    .asciitable
+        map " " to "~" = 1
+    .enda
+    .define Text_{_short}@Bank _bank
+    Text_{_short}@Data: .ascstr _text, $0
+    .asciitable
+        map " " to "~" = 32
+    .enda
+.endm
 
-.asciitable
-map " " to "~" = 1
-.enda
+.section "Strings" bank 1 slot "ROM"
 
-Text_TopGun3: .ascstr "Top Gun 3", $0
-
-.asciitable
-map " " to "~" = 32
-.enda
+definetext(1, "TopGun3", "Top Gun 3")
 
 .ends

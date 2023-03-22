@@ -46,10 +46,14 @@ Engine_Init:
     tya
     sta engine.font_manager.timer_ptr, X
 
-    long_call(FontManager_Init, engine.font_manager)
+    call(FontManager_Init, engine.font_manager)
 
     ; Test functions
     jsr Engine_InitTestObject
+
+    ;        S4321
+    lda #%00010111
+    sta TM
 
     ply
     rts
@@ -67,10 +71,7 @@ Engine_VBlank:
     jsr Engine_MoveTestObject
     call(Input_VBlank, engine.input)
     call(OAMManager_VBlank, engine.oam_manager)
-
-    ;        S4321
-    lda #%00010111
-    sta TM
+    call(FontManager_VBlank, engine.font_manager)
 
     pla
     rts
