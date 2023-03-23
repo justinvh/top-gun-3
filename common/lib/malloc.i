@@ -58,6 +58,7 @@ Memset:
 
     ; Calculate the size of the memory
     tya             ; Get the end address
+    sec
     sbc 5, S        ; Subtract the start address from the end address
 
     ; Setup counter

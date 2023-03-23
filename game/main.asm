@@ -15,6 +15,8 @@
 .include "common/lib/stack.i"
 .include "game/game.asm"
 
+.define STACK $1FFF
+
 .ramsection "MallocInitializeRAM" appendto "RAM"
     malloc_initialize db
 .ends
@@ -51,22 +53,21 @@ Main:
 
     A16_XY16
     
-    ; Initial write just to say we haven't set game pointer
-    stz $0000
-
     ; Set stack pointer
-    ldx #$1FFF
+    ldx #STACK
     txs
 
-    ; Setup allocators (default to offset 0x0004)
+    ; Setup Malloc
     jsr Malloc_Init
 
-    ; Allocate memory for a game
-    ; X will have start address
-    lda #(malloc_initialize) ; Load the size of the Game object
-    jsr Malloc_Bytes    ; Expects A to be the malloc size
+    ; Reserve initial memory for the game
+    lda #malloc_initialize
+    sec
+    sbc #_sizeof_Malloc
+    jsr Malloc_Bytes
 
-    jsr Game_Init       ; Expects X to be the "this" pointer
+    ; Initialize the game
+    jsr Game_Init
 
     A8
 
