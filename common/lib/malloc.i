@@ -1,25 +1,19 @@
-.section "Malloc" BANK 0 SLOT "ROM"
 
 .ACCU	16
 .INDEX	16
-
-.define MALLOC_START $0002
 
 .struct Malloc
     size dw ; Size of the current malloc
     next dw ; Pointer to the next free memory
 .endst
 
-.enum MALLOC_START
-    malloc instanceof Malloc
-.ende
-
+.section "Malloc" BANK 0 SLOT "ROM"
 ;
 ;  @example
 ;      jsr Malloc_Init
 ;
 Malloc_Init:
-    lda #(MALLOC_START + _sizeof_Malloc)
+    lda #(malloc.size + _sizeof_Malloc)
     sta malloc.next
     stz malloc.size
     rts
@@ -64,6 +58,7 @@ Memset:
 
     ; Calculate the size of the memory
     tya             ; Get the end address
+    sec
     sbc 5, S        ; Subtract the start address from the end address
 
     ; Setup counter

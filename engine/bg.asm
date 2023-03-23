@@ -1,6 +1,3 @@
-.section "BG" bank 0 slot "ROM"
-
-nop
 
 .define BG1_TILEMAP_VRAM $0000
 .define BG2_TILEMAP_VRAM $0400
@@ -35,9 +32,13 @@ nop
     bg_info instanceof BGInfo 4
 .endst
 
-.enum $0000
+.ramsection "BGRAM" appendto "RAM"
     bg_manager instanceof BGManager
-.ende
+.ends
+
+.section "BG" bank 0 slot "ROM"
+
+nop
 
 ;
 ; Expects X to be a pointer to BGManager
@@ -47,15 +48,15 @@ BGManager_Init:
 
     ; BG1 is 8x8 characters at 32x32 tiles at 4BPP
     lda #BG1_CHAR_VRAM
-    sta bg_manager.bg_info.1.next_char_vram, X
+    sta bg_manager.bg_info.1.next_char_vram.w
 
     ; BG2 is 8x8 characters at 32x32 tiles at 4BPP
     lda #BG2_CHAR_VRAM
-    sta bg_manager.bg_info.2.next_char_vram, X
+    sta bg_manager.bg_info.2.next_char_vram.w
 
     ; BG3 is 8x8 characters at 32x32 tiles at 2BPP
     lda #BG3_CHAR_VRAM
-    sta bg_manager.bg_info.3.next_char_vram, X
+    sta bg_manager.bg_info.3.next_char_vram.w
 
     A8
 
@@ -102,10 +103,10 @@ BGManager_BG1Next:
 
     DB0
 
-    lda bg_manager.bg_info.1.next_char_vram, X
+    lda bg_manager.bg_info.1.next_char_vram.w
     sta VMADDL
     adc 1, S
-    sta bg_manager.bg_info.1.next_char_vram, X
+    sta bg_manager.bg_info.1.next_char_vram.w
 
     ply
     pla
@@ -124,10 +125,10 @@ BGManager_BG3Next:
 
     DB0
 
-    lda bg_manager.bg_info.3.next_char_vram, X
+    lda bg_manager.bg_info.3.next_char_vram.w
     sta VMADDL
     adc 1, S
-    sta bg_manager.bg_info.3.next_char_vram, X
+    sta bg_manager.bg_info.3.next_char_vram.w
 
     ply
     pla

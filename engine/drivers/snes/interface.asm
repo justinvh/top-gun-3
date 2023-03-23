@@ -1,18 +1,13 @@
-.include "engine/oam.asm"
-.include "engine/bg.asm"
-
-.section "SNES_Interface" bank 0 slot "ROM" semifree
-
-nop
-
 .struct SNES
     init db
 .endst
 
-.enum $0000
+.ramsection "SNESRAM" appendto "RAM"
     snes instanceof SNES
-.ende
+.ends
 
+.section "SNES_Interface" bank 0 slot "ROM" semifree
+nop
  SNES_Init:
     pha
     phx
@@ -110,7 +105,7 @@ nop
     plx
 
     lda #1
-    sta snes.init, X
+    sta snes.init.w
 
     pla
     rts

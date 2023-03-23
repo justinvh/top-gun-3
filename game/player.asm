@@ -3,7 +3,7 @@
 nop
 
 .struct Player
-    oam_manager_ptr  dw
+    id               db ; Player ID
     oam_obj_ptr      dw ; Pointer to the requested OAM object
     input instanceof Input
 .endst
@@ -15,6 +15,11 @@ nop
 Player_Init:
     phy
 
+    A8
+    lda #1
+    sta player.id, X
+    A16
+
     ; Init Input
     call(Input_Init, player.input)
     jsr Player_OAMRequest
@@ -25,7 +30,8 @@ Player_Init:
 Player_OAMRequest:
     pha
     phy
-    call_ptr(OAMManager_Request, player.oam_manager_ptr) ; Request 1 OAM object
+
+    jsr OAMManager_Request
 
     ; VRAM address 0 is a transparent tile. 1 is a grass tile in the test.
     A8
