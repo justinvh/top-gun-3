@@ -2,9 +2,10 @@
 .INDEX 16
 
 .include "engine/drivers/snes/interface.asm"
+.include "engine/bg.asm"
 .include "engine/input.asm"
 .include "engine/map.asm"
-.include "engine/oam_manager.asm"
+.include "engine/oam.asm"
 .include "engine/timer.asm"
 
 .struct Engine

@@ -1,6 +1,3 @@
-.include "engine/oam.asm"
-.include "engine/bg.asm"
-
 .struct SNES
     init db
 .endst
