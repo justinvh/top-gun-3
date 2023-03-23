@@ -10,7 +10,6 @@
 
 .struct Engine
     frame_counter dw
-    test_object_ptr dw ; Pointer to the requested OAM object
 .endst
 
 .ramsection "EngineRAM" appendto "RAM"
@@ -32,9 +31,6 @@ Engine_Init:
     jsr MapManager_Init
     jsr FontManager_Init
 
-    ; Test functions
-    jsr Engine_InitTestObject
-
     ;        S4321
     lda #%00010111
     sta TM
@@ -44,65 +40,14 @@ Engine_Init:
     rts
 
 Engine_Frame:
+    jsr TimerManager_Frame
+    jsr FontManager_Frame
     rts
 
 Engine_VBlank:
-    pha
-
-    ; Increase the timer by 17ms for every vblank
-    jsr TimerManager_Tick
-
-    jsr Engine_MoveTestObject
-
+    jsr TimerManager_VBlank
     jsr OAMManager_VBlank
-
     jsr FontManager_VBlank
-
-    pla
-    rts
-
-Engine_InitTestObject:
-    pha
-    phy
-
-    jsr OAMManager_Request
-
-    ; VRAM address 0 is a transparent tile. 1 is a grass tile in the test.
-    A8
-    lda #1
-    sta oam_object.vram, Y
-    A16
-
-    ; Save the pointer for testing later
-    tya
-    sta engine.test_object_ptr.w
-
-    ply
-    pla
-    rts
-
-;
-; Move the test object
-;
-Engine_MoveTestObject:
-    pha
-    phx
-
-    ; Load pointer to OAM object
-    lda engine.test_object_ptr.w
-    tax
-
-    A8_XY16
-
-    ; Load OAM object and add 1 to x position and y position
-    inc oam_object.x, X
-    inc oam_object.y, X
-    stz oam_object.clean, X
-
-    A16_XY16
-
-    plx
-    pla
     rts
 
 .ends

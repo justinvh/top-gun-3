@@ -83,8 +83,8 @@
 ;
 .struct OAMObject
     index        db  ; This is the index of where the object should be in OAM
+    dirty        db  ; This flag is true if the object has been modified
     allocated    db  ; This flag is true if the object is current bound
-    clean        db  ; If true, then this object hasn't changed
     visible      db  ; If 0, the the MSB for the h-position is set to 1 to make it invisible
     size         db  ; 0 = 8x8, 1 = 16x16, 2 = 32x32, 3 = 64x64
     bpp          db  ;
@@ -103,6 +103,11 @@
 
 .struct OAMManager
     oam_objects instanceof OAMObject MAX_OAM_OBJECTS ; Represents OAM space
+
+    ; Queue of OAM objects that need to be updated
+    oam_queue instanceof Queue
+    oam_queue_memory  ds (2 * MAX_OAM_OBJECTS)
+
 .endst
 
 .ramsection "OAMRAM" appendto "RAM"
@@ -120,8 +125,8 @@ nop
 ;
 OAMObject_Init:
     ; Zeroize the object
+    A8
     stz oam_object.index, X
-    stz oam_object.clean, X
     stz oam_object.allocated, X
     stz oam_object.visible, X
     stz oam_object.size, X
@@ -132,6 +137,7 @@ OAMObject_Init:
     stz oam_object.priority, X
     stz oam_object.flip_h, X
     stz oam_object.flip_v, X
+    A16
     rts
 
 ;
@@ -199,10 +205,6 @@ OAMObject_Write:
     plx
 
     A8
-
-    ; Mark the object as clean
-    lda #1
-    sta oam_object.clean, X
 
     ; Store the X position
     lda oam_object.x, X
@@ -523,10 +525,6 @@ OAM_GetY:
     ply
     rts
 
-
-; We will also use oam_object from oam.asm
-; @see oam.asm
-
 ;
 ; Iterate through each OAM object and set it to be unused, additionally
 ; set its index to its position in the array
@@ -539,6 +537,23 @@ OAMManager_Init:
 
     ; Initialize the OAM space
     jsr OAM_Init
+
+    ; Initialize the queue
+    lda #oam_manager.oam_queue_memory       ; Set the base address of the queue  
+    sta oam_manager.oam_queue.start_addr.w  ; Store it in the OAMManager struct
+
+    ; Calculate the end address of the queue
+    clc
+    adc #(MAX_OAM_OBJECTS * 2)              ; Calculate the end address
+    sta oam_manager.oam_queue.end_addr.w    ; Store it in the OAMManager struct
+
+    ; Set the element size to 2 bytes
+    lda #2                                   ; Set the element size in bytes
+    sta oam_manager.oam_queue.element_size.w ; Store it in the OAMManager struct
+
+    ; Initialize the queue
+    ldx #oam_manager.oam_queue               ; Set the Queue "this" pointer
+    jsr Queue_Init
 
     ; Advance the pointer to the first OAM object in the struct
     clc
@@ -563,6 +578,54 @@ OAMManager_Init:
     pla
 
     rts
+
+;
+; Expects X to be the pointer OAM object
+; Will mark the object as dirty and push it onto the queue
+;
+OAM_MarkDirty:
+    pha
+    phx
+    phy
+
+    ; if (oam_object.dirty)
+    ;     return
+    A8
+    lda oam_object.dirty, X
+    cmp #1
+    beq @Done
+    A16
+
+    ; Queue_Push(&Y) (this = X)
+    phx
+    ldx #oam_manager.oam_queue
+    jsr Queue_Push
+
+    ; if (oam_queue.error == QUEUE_ERROR_FULL)
+    ;    return
+    lda queue.error.w, X
+    cmp #QUEUE_ERROR_FULL
+    bne @SavePointer
+    plx
+    bra @Done
+
+    ; else update the Y pointer to point to the OAM object
+    @SavePointer:
+    plx
+    txa
+    sta $0, Y
+
+    A8
+    lda #1
+    sta oam_object.dirty, X
+    A16
+
+    @Done:
+        A16
+        ply
+        plx
+        pla
+        rts
 
 ;
 ; This function will return a pointer to the next free OAM object.
@@ -653,45 +716,27 @@ OAMManager_VBlank:
     phx
     phy
 
-    ; Advance the pointer to the first OAM object in the struct
-    clc
-    lda #oam_manager.oam_objects
-    sec
-    sbc #_sizeof_OAMObject       ; Intentionally start at -1
-    tax
-
-    ; Stupidly simple, just iterate through the OAM objects and
-    ; render dirty ones
-    ldy #0
-
     @Next:
-        clc
-        txa
-        adc #_sizeof_OAMObject   ; Advance the pointer
-        tax
+        ldx #oam_manager.oam_queue
+        jsr Queue_Pop
 
-        ; Did we reach the end of the OAM object space?
-        iny
-        cpy #MAX_OAM_OBJECTS
+        ; if (oam_queue.error == QUEUE_ERROR_EMPTY)
+        lda queue.error.w, X
+        cmp #QUEUE_ERROR_EMPTY
         beq @Done
 
-        ; Otherwise check if the object is clean
-        A8
-        lda oam_object.clean, X
-        cmp #1
-        A16
-
-        ; Prepare accumulator for next iteration
-        beq @Next
+        ; Transfer Y to X for pointer math
+        lda $0, Y
+        tax
 
         ; If we got here, then we found a dirty object. Render it.
         jsr OAMObject_Write
+        stz oam_object.dirty, X
         bra @Next
 
     @Done:
-
-    ply
-    plx
-    pla
+        ply
+        plx
+        pla
     rts
 .ends
