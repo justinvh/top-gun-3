@@ -83,9 +83,8 @@ Main:
 
     ; Main game loop
     @Main_Loop:
-        wai             ; Wait for interrupt
         jsr Game_Frame  ; Expects X to be the "this" pointer
-        jmp @Main_Loop  ; Loop forever
+        bra @Main_Loop  ; Loop forever
 
 ;
 ; The VBlank interrupt is an NMI that is activated when the vertical

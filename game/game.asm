@@ -34,6 +34,9 @@ Game_Frame:
     inc game.frame_counter.w        ; Increment frame counter
     jsr Engine_Frame
 
+    ldx #game.player
+    jsr Player_Frame
+
     ply
     plx
     pla
@@ -59,11 +62,6 @@ Game_Init:
 
     ; Initialize all font data
     jsr Game_FontInit
-
-    ; Render one frame to initialize the screen
-    jsr Game_VBlank
-
-    A16_XY16    
 
     ; Initialize the player
     ldx #game.player
@@ -121,7 +119,8 @@ Game_FontInit:
     sta font_surface.data_bank, X
 
     ; Mark surface dirty
-    stz font_surface.clean, X
+    lda #1
+    sta font_surface.dirty, X
 
     A16
     ply

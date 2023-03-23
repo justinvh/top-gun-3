@@ -39,6 +39,11 @@ Player_OAMRequest:
     sta oam_object.vram, Y
     A16
 
+    phx
+    tyx
+    jsr OAM_MarkDirty
+    plx
+
     tya
     sta player.oam_obj_ptr, X
 
@@ -46,11 +51,13 @@ Player_OAMRequest:
     pla
     rts
 
+Player_Frame:
+    jsr Player_Input
+
 Player_VBlank:
     pha
 
     call(Input_VBlank, player.input)
-    jsr Player_Input
 
     pla
     rts
@@ -72,6 +79,7 @@ Player_Input:
     rts
 
 Player_UpBtn:
+    phx
     phy
 
     ldy player.input.inputstate.upbtn, X
@@ -81,13 +89,15 @@ Player_UpBtn:
     tax
     A8
     dec oam_object.y, X
-    stz oam_object.clean, X
+    A16
+    jsr OAM_MarkDirty
     @Done:
-        A16
         ply
+        plx
         rts
 
 Player_DnBtn:
+    phx
     phy
 
     ldy player.input.inputstate.dnbtn, X
@@ -97,13 +107,16 @@ Player_DnBtn:
     tax
     A8
     inc oam_object.y, X
-    stz oam_object.clean, X
+    A16
+
+    jsr OAM_MarkDirty
     @Done:
-        A16
         ply
+        plx
         rts
 
 Player_LftBtn:
+    phx
     phy
 
     ldy player.input.inputstate.lftbtn, X
@@ -113,13 +126,15 @@ Player_LftBtn:
     tax
     A8
     dec oam_object.x, X
-    stz oam_object.clean, X
+    A16
+    jsr OAM_MarkDirty
     @Done:
-        A16
         ply
+        plx
         rts
 
 Player_RhtBtn:
+    phx
     phy
 
     ldy player.input.inputstate.rhtbtn, X
@@ -129,10 +144,11 @@ Player_RhtBtn:
     tax
     A8
     inc oam_object.x, X
-    stz oam_object.clean, X
+    A16
+    jsr OAM_MarkDirty
     @Done:
-        A16
         ply
+        plx
         rts
 
 .ends

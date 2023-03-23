@@ -44,21 +44,15 @@ Engine_Init:
     rts
 
 Engine_Frame:
+    jsr TimerManager_Frame
+    jsr FontManager_Frame
+    jsr Engine_MoveTestObject
     rts
 
 Engine_VBlank:
-    pha
-
-    ; Increase the timer by 17ms for every vblank
-    jsr TimerManager_Tick
-
-    jsr Engine_MoveTestObject
-
+    jsr TimerManager_VBlank
     jsr OAMManager_VBlank
-
     jsr FontManager_VBlank
-
-    pla
     rts
 
 Engine_InitTestObject:
@@ -92,15 +86,13 @@ Engine_MoveTestObject:
     lda engine.test_object_ptr.w
     tax
 
-    A8_XY16
-
     ; Load OAM object and add 1 to x position and y position
+    A8
     inc oam_object.x, X
     inc oam_object.y, X
-    stz oam_object.clean, X
+    A16
 
-    A16_XY16
-
+    jsr OAM_MarkDirty
     plx
     pla
     rts

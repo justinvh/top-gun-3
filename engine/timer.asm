@@ -13,6 +13,7 @@
 .endst
 
 .struct TimerManager
+    pending_tick db
     timers instanceof Timer MAX_TIMERS
 .endst
 
@@ -109,10 +110,30 @@ TimerManager_Request:
 ; Tick the clock by 17ms milliseconds.
 ; A register is the number of milliseconds to tick the clock.
 ;
-TimerManager_Tick:
+TimerManager_VBlank:
+    pha
+
+    A8
+    lda #1
+    sta timer_manager.pending_tick.w
+    A16
+
+    pla
+    rts
+
+TimerManager_Frame:
     pha
     phx
     phy
+
+    ; if (timer_manager.pending_tick == 0)
+    ;    return;
+    A8
+    lda timer_manager.pending_tick.w
+    cmp #0
+    stz timer_manager.pending_tick.w
+    A16
+    beq @Done
 
     ldy #MAX_TIMERS
     ldx #timer_manager
@@ -155,6 +176,7 @@ TimerManager_Tick:
             cpy #0
             bne @Loop
 
+    @Done:
     ply
     plx
     pla

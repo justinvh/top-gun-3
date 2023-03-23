@@ -45,7 +45,7 @@
     font_ptr        dw      ; Pointer to the font VRAM info
     allocated       db      ; If 1, this is allocated
     enabled         db      ; If 1, this is enabled
-    clean           db      ; If 1, this is clean and doesn't need updated
+    dirty           db      ; If 1, this is dirty and needs to be redrawn
     x               db      ; X position to draw at
     y               db      ; Y position to draw at
     time            db      ; Number of 50ms ticks between each character draw
@@ -61,6 +61,8 @@
     fonts instanceof Font MAX_FONTS
     font_surfaces instanceof FontSurface MAX_FONT_SURFACES
     timer_ptr      dw   ; Pointer to the timer to use
+    surface_queue instanceof Queue
+    surface_queue_memory ds (2 * MAX_FONT_SURFACES)
 .endst
 
 .enum $0000
@@ -85,7 +87,7 @@
 FontSurface_Init:
     stz font_surface.allocated, X
     stz font_surface.enabled, X
-    stz font_surface.clean, X
+    stz font_surface.dirty, X
     stz font_surface.x, X
     stz font_surface.y, X
     stz font_surface.time, X
@@ -102,6 +104,24 @@ FontManager_Init:
     sta font_manager.timer_ptr.w
     ldx (font_manager.timer_ptr.w)
     jsr Timer_Init
+
+    ; Initialize the queue
+    lda #font_manager.surface_queue_memory       ; Set the base address of the queue  
+    sta font_manager.surface_queue.start_addr.w  ; Store it in the Font Manager struct
+
+    ; Calculate the end address of the queue
+    clc
+    adc #(MAX_FONT_SURFACES * 2)                   ; Calculate the end address
+    sta font_manager.surface_queue.end_addr.w      ; Store it in the OAMManager struct
+
+    ; Set the element size to 2 bytes
+    lda #2                                        ; Set the element size in bytes
+    sta font_manager.surface_queue.element_size.w ; Store it in the OAMManager struct
+
+    ; Initialize the queue
+    ldx #font_manager.surface_queue               ; Set the Queue "this" pointer
+    jsr Queue_Init
+
     rts
 
 ;
@@ -245,8 +265,7 @@ FontManager_RequestSurface:
         rts
 
 ;
-; X register points to the font manager
-; Y register points to the font surface
+; X register points to the font surface
 ;
 FontManager_Draw:
     phb
@@ -254,11 +273,11 @@ FontManager_Draw:
     phx
     phy
 
-    lda font_surface.data_ptr, Y
+    lda font_surface.data_ptr, X
     pha
 
     A8
-    lda font_surface.data_bank, Y
+    lda font_surface.data_bank, X
     pha
     plb
     A16
@@ -298,7 +317,7 @@ FontManager_Draw:
     plb
     rts
 
-FontManager_VBlank:
+FontManager_Frame:
     pha
     phx
     phy
@@ -312,26 +331,23 @@ FontManager_VBlank:
     @Loop:
         A8
 
+        ; Check if the font draw info is dirty
+        @CheckDirty:
+            lda font_surface.dirty, X
+            cmp #1
+            bne @Continue
+
         ; Check if the font draw info is allocated
         @CheckAllocated:
             lda font_surface.allocated, X
             cmp #1
-            beq @CheckEnabled
-            bra @Continue
+            bne @Continue
 
         ; Check if the font draw info is enabled
         @CheckEnabled:
             lda font_surface.enabled, X
             cmp #1
-            beq @CheckClean
-            bra @Continue
-
-        ; Check if the font draw info is clean
-        @CheckClean:
-            lda font_surface.clean, X
-            cmp #1
-            bne @CheckHasTimer
-            bra @Continue
+            bne @Continue
 
         ; Check if the font draw info has a timer
         @CheckHasTimer:
@@ -350,23 +366,28 @@ FontManager_VBlank:
             A16
             phx         ; Save X pointing to the font draw info
             phy         ; Save Y counter for looping
-            txy         ; Make Y point to the font draw info
 
-            lda 7, S    ; Restore the FontManager object
-            tax         ; Make X point to the FontManager object
+            ldx #font_manager.surface_queue
+            jsr Queue_Push
 
-            ; X points to the FontManager object
-            ; Y points to the FontSurface object
-            jsr FontManager_Draw
+            ; if (oam_queue.error == QUEUE_ERROR_FULL)
+            ;   continue
+            lda queue.error.w, X
+            cmp #QUEUE_ERROR_FULL
+            bne @SavePointer
             ply
             plx
-            
-        ; Not allocated or enabled, skip
-        @Continue:
-            A8
-            lda #1
-            sta font_surface.clean, X
+            bra @Continue
 
+        @SavePointer:
+            lda 3, S    ; Retrieve the pointer to the FontSurface object
+            sta $0, Y   ; Save the pointer to the FontSurface object
+            ply
+            plx
+            A8
+            stz font_surface.dirty, X
+            
+        @Continue:
             A16
             clc
 
@@ -388,5 +409,35 @@ FontManager_VBlank:
     plx
     pla
     rts
+
+;
+; Pops all the font surfaces off the queue and draws them
+;
+FontManager_VBlank:
+    pha
+    phx
+    phy
+
+    @Next:
+        ldx #font_manager.surface_queue
+        jsr Queue_Pop
+
+        ; if (oam_queue.error == QUEUE_ERROR_EMPTY
+        ;   return
+        lda queue.error.w, X
+        cmp #QUEUE_ERROR_EMPTY
+        beq @Done
+
+        lda $0, Y
+        tax
+
+        jsr FontManager_Draw
+        bra @Next
+
+    @Done:
+        ply
+        plx
+        pla
+        rts
 
 .ends
