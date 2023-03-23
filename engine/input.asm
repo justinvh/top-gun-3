@@ -1,85 +1,137 @@
 .include "engine/drivers/input/interface.asm"
 
+.define UPBTN   $0800
+.define DNBTN   $0400
+.define LFTBTN  $0200
+.define RHTBTN  $0100
+
 .section "Input" BANK 0 SLOT "ROM"
 
-nop
+.struct InputState
+    index  db
+    start  db
+    select db
+    upbtn  db
+    dnbtn  db
+    lftbtn db
+    rhtbtn db
+.endst
 
 .struct Input
-    frame_counter dw
-    input1l_q instanceof Queue
-    input1h_q instanceof Queue
+    inputstate instanceof InputState
+    enabled db
 .endst
 
 .enum $00
     input instanceof Input
 .ende
 
-;Defining and init Queue here does not seem to be pushing/pop
-;Defining and init in Main seems to work for push, but it keeps pushing over memory
-;Queue_Define("INPUT1L_Q", $0090, #$0002, #$0004)
-;Queue_Define("INPUT1H_Q", $00A0, #$0002, #$0004)
-
 Input_Init:
-    pha
-    phy
-    phx
-
-    ; Allocate Queue + 4 bytes for the queue
-    lda #(_sizeof_Queue)
-    adc #$4
-    jsr Malloc_Bytes
-
-    ; X has the start address
-    ; Y has the end address
-    jsr Queue_Init
-
-    txy         ; Y is now the start address
-    lda 1, S    ; Grab the this pointer again
-    tax         ; X is now the proper offset
-    tya         ; Put the start address back into the accumulator
-    sta input.input1l_q, X ; Store the start address into the input struct
-
-    ; Allocate Queue + 4 bytes for the second queue
-    lda #(_sizeof_Queue)
-    adc #$4
-    jsr Malloc_Bytes
-
-    ; X has the start address
-    ; Y has the end address
-    jsr Queue_Init
-
-    txy         ; Y is now the start address
-    lda 1, S    ; Grab the this pointer again
-    tax         ; X is now the proper offset
-    tya         ; Put the start address back into the accumulator
-    sta input.input1h_q, X ; Store the start address into the input struct
-
-    lda #$0000
-    sta input.frame_counter, X
-
-    plx
-    ply
-    pla
+    A8
+    stz input.inputstate.upbtn, X
+    stz input.inputstate.dnbtn, X
+    stz input.inputstate.rhtbtn, X
+    stz input.inputstate.lftbtn, X
+    A16
     rts
 
 Input_Frame:
     rts
 
-; X is "this" pointer
 Input_VBlank:
     pha
-
-    inc input.frame_counter, X
-
-    lda JOY1L
-    call_ptr(Queue_Push, input.input1l_q)
-    call_ptr(Queue_Pop, input.input1l_q)
-
-    lda JOY1H
-    call_ptr(Queue_Push, input.input1h_q)
-    call_ptr(Queue_Pop, input.input1h_q)
-
+    jsr Input_UpButton
+    jsr Input_DnButton
+    jsr Input_LftButton
+    jsr Input_RhtButton
     pla
     rts
 
+Input_DnButton:
+    pha
+    @CheckDnButton:
+        lda JOY1L                          ; check whether the Dn button was pressed this frame...
+        cmp #DNBTN
+        bne @CheckDnButtonDone 
+        A8
+        lda #1
+        sta input.inputstate.dnbtn, X
+        bra @Done
+
+    @CheckDnButtonDone:
+        A8
+        lda #0
+        sta input.inputstate.dnbtn, X
+        bra @Done
+
+    @Done:
+        A16
+        pla
+        rts
+
+Input_UpButton:
+    pha
+    @CheckUpButton:
+        lda JOY1L                          ; check whether the up button was pressed this frame...
+        cmp #UPBTN
+        bne @CheckUpButtonDone 
+        A8
+        lda #1
+        sta input.inputstate.upbtn, X
+        bra @Done
+
+    @CheckUpButtonDone:
+        A8
+        lda #0
+        sta input.inputstate.upbtn, X
+        bra @Done
+
+    @Done:
+        A16
+        pla
+        rts
+
+Input_LftButton:
+    pha
+    @CheckLftButton:
+        lda JOY1L                          ; check whether the lft button was pressed this frame...
+        cmp #LFTBTN
+        bne @CheckLftButtonDone 
+        A8
+        lda #1
+        sta input.inputstate.lftbtn, X
+        bra @Done
+
+    @CheckLftButtonDone:
+        A8
+        lda #0
+        sta input.inputstate.lftbtn, X
+        bra @Done
+
+    @Done:
+        A16
+        pla
+        rts
+
+Input_RhtButton:
+    pha
+    @CheckRhtButton:
+        lda JOY1L                          ; check whether the rht button was pressed this frame...
+        cmp #RHTBTN
+        bne @CheckRhtButtonDone 
+        A8
+        lda #1
+        sta input.inputstate.rhtbtn, X
+        bra @Done
+
+    @CheckRhtButtonDone:
+        A8
+        lda #0
+        sta input.inputstate.rhtbtn, X
+        bra @Done
+
+    @Done:
+        A16
+        pla
+        rts
 .ends

@@ -3,6 +3,7 @@
 .include "game/fonts.i"
 .include "game/strings.i"
 .include "engine/engine.asm"
+.include "game/player.asm"
 
 .ACCU	16
 .INDEX	16
@@ -14,6 +15,7 @@ nop ; This is here to prevent the compiler from optimizing the label away
 .struct Game
     frame_counter dw            ; Frame counter (increments every frame)
     engine instanceof Engine    ; Pointer to the engine struct
+    player instanceof Player
     test_ui_ptr dw              ; Pointer to the requested test UI component
 .endst
 
@@ -64,6 +66,14 @@ Game_Init:
 
     ; Render one frame to initialize the screen
     jsr Game_VBlank
+
+    A16_XY16    
+    txa                             ; X points to game
+    adc #game.engine.oam_manager  ; Pointer arithmetic to get to `engine.oam_manager`
+    sta game.player.oam_manager_ptr, X ; Set the pointer on the game
+
+    ; Initialize the player
+    call(Player_Init, game.player)
 
     plx
     ply
@@ -139,6 +149,15 @@ Game_FontInit:
 ;
 Game_VBlank:
     call(Engine_VBlank, game.engine) ; Equivalent to this->engine.vblank()
+    call(Player_VBlank, game.player)
     rts
+
+; Game_CheckPlayerStart:
+;     ; call inputclass to check which players have start\
+;     bne @Done
+
+;     @Done:
+
+;     rts
 
 .ends
