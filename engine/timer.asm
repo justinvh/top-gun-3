@@ -1,8 +1,6 @@
 ;
 ; Creates a series of timers that can be used to time the execution of code.
 ;
-.section "Timer" bank 0 slot "ROM"
-
 .define MAX_TIMERS 8
 .define TICK_MS 17
 
@@ -19,12 +17,14 @@
 .endst
 
 .enum $0000
-    tm instanceof TimerManager
-.ende
-.enum $0000
     timer instanceof Timer
 .ende
 
+.ramsection "TimerManagerRAM" appendto "RAM"
+    timer_manager instanceof TimerManager
+.ends
+
+.section "Timer" bank 0 slot "ROM"
 ;
 ; Initialize the timer manager and all timers.
 ;
@@ -32,6 +32,8 @@ TimerManager_Init:
     pha
     phx
     phy
+
+    ldx #timer_manager
 
     ldy #MAX_TIMERS
     @Loop:
@@ -67,6 +69,7 @@ TimerManager_Request:
     phx
 
     ldy #MAX_TIMERS
+    ldx #timer_manager
     @Loop:
         lda timer.allocated, X
         cmp #0
@@ -112,6 +115,7 @@ TimerManager_Tick:
     phy
 
     ldy #MAX_TIMERS
+    ldx #timer_manager
     @Loop:
         ; Timers not enabled aren't tracked
         lda timer.enabled, X

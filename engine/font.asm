@@ -5,8 +5,6 @@
 .ACCU   16
 .INDEX  16
 
-.section "Font" bank 0 slot "ROM"
-
 .define MAX_FONTS 2
 .define MAX_FONT_SURFACES 8
 
@@ -62,15 +60,11 @@
 .struct FontManager
     fonts instanceof Font MAX_FONTS
     font_surfaces instanceof FontSurface MAX_FONT_SURFACES
-    bg_manager_ptr dw   ; Pointer to the BG manager to use
     timer_ptr      dw   ; Pointer to the timer to use
 .endst
 
 .enum $0000
     font instanceof Font
-.ende
-.enum $0000
-    font_manager instanceof FontManager
 .ende
 .enum $0000
     font_header instanceof FontHeader
@@ -79,6 +73,11 @@
     font_surface instanceof FontSurface
 .ende
 
+.ramsection "FontManagerRAM" appendto "RAM"
+    font_manager instanceof FontManager
+.ends
+
+.section "Font" bank 0 slot "ROM"
 ;
 ; Default initialization of a font draw info
 ; Expects X to point to the font draw info object
@@ -98,7 +97,11 @@ FontSurface_Init:
 
 FontManager_Init:
     lda #50
-    call_ptr(Timer_Init, font_manager.timer_ptr)
+    jsr TimerManager_Request
+    tya
+    sta font_manager.timer_ptr.w
+    ldx (font_manager.timer_ptr.w)
+    jsr Timer_Init
     rts
 
 ;
@@ -114,12 +117,12 @@ FontManager_Load:
 
     ; Preserve the font bank number
     A8
-    sta font_manager.fonts.1.font_header_bank, X
+    sta font_manager.fonts.1.font_header_bank.w
 
     ; Preserve the font pointer
     A16
     tya
-    sta font_manager.fonts.1.font_header_ptr, X
+    sta font_manager.fonts.1.font_header_ptr.w
 
     ; Set the font header pointer
     A8
@@ -135,14 +138,12 @@ FontManager_Load:
 
     ; Use the 2BPP plane 3rd background for the font
     lda #3
-    sta font_manager.fonts.1.bg_vram, X
+    sta font_manager.fonts.1.bg_vram.w
 
     ; Get the background manager pointer and get the next VRAM address
     ; and store it in the current font VRAM info
     phx
-    lda font_manager.bg_manager_ptr, X
-    tax
-    lda bg_manager.bg_info.3.next_char_vram, X
+    lda bg_manager.bg_info.3.next_char_vram.w
 
     ; Prepare BGManager to advance the VRAM address for BG3 
     ; X points to the BGManager object currently
@@ -151,10 +152,10 @@ FontManager_Load:
 
     ; Pop the stack. Store the VRAM address in the font VRAM info
     plx
-    sta font_manager.fonts.1.char_vram_addr, X
+    sta font_manager.fonts.1.char_vram_addr.w
 
     ; Font is now ready to write to VRAM
-    lda font_manager.fonts.1.font_header_ptr, X
+    lda font_manager.fonts.1.font_header_ptr.w
     tax
 
     ; X now points to the font object
@@ -183,7 +184,7 @@ FontManager_Load:
     plx
     pla
 
-    sta font_manager.fonts.1.font_header_ptr, X
+    sta font_manager.fonts.1.font_header_ptr.w
 
     plb
     rts
@@ -193,13 +194,11 @@ FontManager_RequestSurface:
     phx
 
     ; Save the font info for the allocated object
-    txa
-    adc #font_manager.fonts
+    lda #font_manager.fonts
     pha
 
     ; We will be advancing this pointer
-    txa
-    adc #font_manager.font_surfaces
+    lda #font_manager.font_surfaces
     tax
 
     ldy #MAX_FONT_SURFACES
@@ -307,8 +306,7 @@ FontManager_VBlank:
     ldy #MAX_FONT_SURFACES
 
     clc
-    txa
-    adc #font_manager.font_surfaces
+    lda #font_manager.font_surfaces
     tax
 
     @Loop:

@@ -6,18 +6,18 @@
 ; it should call OAMManager_Release() to release the OAM object back to the
 ; OAMManager.
 ;
-.section "OAMManager" BANK 0 SLOT "ROM"
-
 .define MAX_OAM_OBJECTS 128
 
 .struct OAMManager
     oam_objects instanceof OAMObject MAX_OAM_OBJECTS ; Represents OAM space
 .endst
 
-.enum $00
+.ramsection "OAMManagerRAM" appendto "RAM"
     oam_manager instanceof OAMManager
-.ende
+.ends
 
+.section "OAMManager" BANK 0 SLOT "ROM"
+nop
 ; We will also use oam_object from oam.asm
 ; @see oam.asm
 
@@ -35,11 +35,9 @@ OAMManager_Init:
     jsr OAM_Init
 
     ; Advance the pointer to the first OAM object in the struct
-    txa
-    adc #OAMManager.oam_objects
-    tax
-
     clc
+    lda #oam_manager.oam_objects
+    tax
 
     ; This will be the counter for number of objects
     ldy #0
@@ -47,6 +45,7 @@ OAMManager_Init:
     @Loop:
         jsr OAMObject_Init      ; Initialize the current OAM object (X register points to it)
         sty oam_object.index, X ; Set the index of the object to its position in the array
+        clc
         adc #_sizeof_OAMObject   ; Advance the pointer
         tax                     ; Make it the new X register
         iny                     ; Advance counter
@@ -69,8 +68,8 @@ OAMManager_Request:
     phx
 
     ; Advance the pointer to the first OAM object in the struct
-    txa
-    adc #OAMManager.oam_objects
+    clc
+    lda #oam_manager.oam_objects
     sec
     sbc #_sizeof_OAMObject       ; Intentionally start at -1
     tax
@@ -149,8 +148,8 @@ OAMManager_VBlank:
     phy
 
     ; Advance the pointer to the first OAM object in the struct
-    txa
-    adc #OAMManager.oam_objects
+    clc
+    lda #oam_manager.oam_objects
     sec
     sbc #_sizeof_OAMObject       ; Intentionally start at -1
     tax

@@ -5,11 +5,19 @@
 .include "common/alias.i"
 .include "common/macros.i"
 .include "common/lib/malloc.i"
+
+.ramsection "RAM" bank 0 slot "WRAM" offset 0
+    malloc instanceof Malloc
+.ends
+
 .include "common/lib/math.i"
 .include "common/lib/queue.i"
 .include "common/lib/stack.i"
-
 .include "game/game.asm"
+
+.ramsection "MallocInitializeRAM" appendto "RAM"
+    malloc_initialize db
+.ends
 
 .SNESNATIVEVECTOR
   COP EmptyHandler
@@ -29,9 +37,6 @@
 
 .section "MainCode" bank 0 slot "ROM"
 nop
-
-; Special pointer to the global game object for nmi
-.define GAME_GLOBAL $0000
 
 ;
 ; Entry point for everything.
@@ -53,22 +58,15 @@ Main:
     ldx #$1FFF
     txs
 
-    ldx #7
-    lda #3
-    jsr Math_Divide
-
     ; Setup allocators (default to offset 0x0004)
     jsr Malloc_Init
 
     ; Allocate memory for a game
     ; X will have start address
-    lda #(_sizeof_Game) ; Load the size of the Game object
+    lda #(malloc_initialize) ; Load the size of the Game object
     jsr Malloc_Bytes    ; Expects A to be the malloc size
 
     jsr Game_Init       ; Expects X to be the "this" pointer
-
-    ; Store the X pointer to the game object in the global variable
-    stx GAME_GLOBAL     ; Put Game pointer into the first address as global variable
 
     A8
 
@@ -118,7 +116,6 @@ Main_VBlank:
     ; handling a game frame, then we can do the rendering and input
     ; and otherwise skip this ISR.
     A16
-    ldx ($0000)     ; Get the global game object pointer
     jsr Game_VBlank ; Expects X to be the "this" pointer
 
     ; Re-enable the screen
