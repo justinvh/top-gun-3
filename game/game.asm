@@ -37,6 +37,7 @@ Game_Frame:
     ldx #game.player
     jsr Player_Frame
 
+    @Done:
     ply
     plx
     pla

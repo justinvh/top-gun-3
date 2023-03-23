@@ -83,6 +83,7 @@ Main:
 
     ; Main game loop
     @Main_Loop:
+        wai
         jsr Game_Frame  ; Expects X to be the "this" pointer
         bra @Main_Loop  ; Loop forever
 

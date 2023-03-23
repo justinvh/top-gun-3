@@ -1,5 +1,8 @@
 .include "engine/drivers/input/interface.asm"
 
+.ACCU   16
+.INDEX  16
+
 .define UPBTN   $0800
 .define DNBTN   $0400
 .define LFTBTN  $0200
@@ -40,6 +43,13 @@ Input_Frame:
 
 Input_VBlank:
     pha
+
+    ; Wait until the HVBJOY shows that the controllers are ready to be read
+    @WaitForJoyReady:
+        lda HVBJOY
+        and #1
+        bne @WaitForJoyReady
+
     jsr Input_UpButton
     jsr Input_DnButton
     jsr Input_LftButton

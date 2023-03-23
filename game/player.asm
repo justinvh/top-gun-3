@@ -53,6 +53,7 @@ Player_OAMRequest:
 
 Player_Frame:
     jsr Player_Input
+    rts
 
 Player_VBlank:
     pha
