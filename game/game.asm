@@ -114,6 +114,9 @@ Game_FontInit:
     lda #Text_TopGun3@Data
     sta font_surface.data_ptr, X
 
+    lda #Tile8x8(128, 128)
+    sta font_surface.tile_index, X
+
     ; Provide bank of text to draw
     A8
     lda #Text_TopGun3@Bank

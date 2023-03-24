@@ -46,8 +46,7 @@
     allocated       db      ; If 1, this is allocated
     enabled         db      ; If 1, this is enabled
     dirty           db      ; If 1, this is dirty and needs to be redrawn
-    x               db      ; X position to draw at
-    y               db      ; Y position to draw at
+    tile_index      dw      ; 8x8 Tile index to draw at
     time            db      ; Number of 50ms ticks between each character draw
     remaining_time  db      ; Remaining time before drawing the next character
     curr_idx        db      ; If time > 0, then this is the character index to draw
@@ -88,8 +87,6 @@ FontSurface_Init:
     stz font_surface.allocated, X
     stz font_surface.enabled, X
     stz font_surface.dirty, X
-    stz font_surface.x, X
-    stz font_surface.y, X
     stz font_surface.time, X
     stz font_surface.remaining_time, X
     stz font_surface.curr_idx, X
@@ -273,6 +270,9 @@ FontManager_Draw:
     phx
     phy
 
+    lda font_surface.tile_index, X
+    pha
+
     lda font_surface.data_ptr, X
     pha
 
@@ -291,7 +291,8 @@ FontManager_Draw:
 
         A16
         tya
-        adc #BG3_TILEMAP_VRAM ; This is hacky
+        adc #BG3_TILEMAP_VRAM ; Start at the tilemap VRAM address
+        adc 1, S              ; Add the tile index
         sta VMADDL
 
         A8
@@ -311,6 +312,7 @@ FontManager_Draw:
     @Done:
 
     A16
+    pla
     ply
     plx
     pla
