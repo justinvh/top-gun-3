@@ -38,6 +38,8 @@ Malloc_Bytes:
     sta malloc.next ; Store the new pointer
 
     ; Zero memory
+    lda 1, S
+    tay
     lda #$0000
     jsr Memset
 
@@ -48,7 +50,7 @@ Malloc_Bytes:
 ; Memset an address range with a value
 ; Arguments:
 ;  X: Start address
-;  Y: End address
+;  Y: Num bytes
 ;  A: Value to write
 ;
 Memset:
@@ -56,21 +58,11 @@ Memset:
     phy             ; Save the end address of the memory
     pha             ; Save the value to write
 
-    ; Calculate the size of the memory
-    tya             ; Get the end address
-    sec
-    sbc 5, S        ; Subtract the start address from the end address
-
-    ; Setup counter
-    tay             ; Make the Y register the counter
-
-    ; Loop and fill
-    lda 1, S        ; Load value to write
     @Loop:
-        sta (5, S), Y
+        sta $0, X
+        inx
         dey
-        dey
-        bpl @Loop
+        bne @Loop
 
     pla
     ply
