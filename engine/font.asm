@@ -300,7 +300,9 @@ FontManager_Draw:
         cmp #0
         beq @Done
 
-        dea ; Strings are offset by 1
+        ; Offset by the ASCII table (32 = space)
+        sec
+        sbc #32
 
         sta VMDATAL
         stz VMDATAH
