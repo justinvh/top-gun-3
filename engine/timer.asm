@@ -2,7 +2,8 @@
 ; Creates a series of timers that can be used to time the execution of code.
 ;
 .define MAX_TIMERS 8
-.define TICK_MS 17
+.define VBLANK_MS 16
+.define VBLANK_US 666
 
 .struct Timer
     allocated    dw
@@ -12,8 +13,21 @@
     remaining_ms dw
 .endst
 
+.struct Clock
+    us  dw
+    ms  dw
+    s   db
+    m   db
+    h   db
+    d   db
+.endst
+
 .struct TimerManager
-    pending_tick db
+    elapsed_hblanks dw
+    elapsed_vblanks dw
+    elapsed_us dw
+    elapsed_ms dw
+    clock instanceof Clock
     timers instanceof Timer MAX_TIMERS
 .endst
 
@@ -34,7 +48,21 @@ TimerManager_Init:
     phx
     phy
 
-    ldx #timer_manager
+    A8
+    stz timer_manager.clock.s.w
+    stz timer_manager.clock.m.w
+    stz timer_manager.clock.h.w
+    stz timer_manager.clock.d.w
+
+    A16
+    stz timer_manager.clock.us.w
+    stz timer_manager.clock.ms.w
+    stz timer_manager.elapsed_us.w
+    stz timer_manager.elapsed_ms.w
+    stz timer_manager.elapsed_hblanks.w
+    stz timer_manager.elapsed_vblanks.w
+
+    ldx #timer_manager.timers
 
     ldy #MAX_TIMERS
     @Loop:
@@ -53,7 +81,7 @@ TimerManager_Init:
         ; Check if we're done
         dey
         cpy #0
-        bne @Done
+        bne @Loop
 
     @Done:
         ply
@@ -70,7 +98,7 @@ TimerManager_Request:
     phx
 
     ldy #MAX_TIMERS
-    ldx #timer_manager
+    ldx #timer_manager.timers
     @Loop:
         lda timer.allocated, X
         cmp #0
@@ -106,18 +134,92 @@ TimerManager_Request:
         pla
         rts
 
-;
-; Tick the clock by 17ms milliseconds.
-; A register is the number of milliseconds to tick the clock.
-;
-TimerManager_VBlank:
+TimerManager_Tick:
     pha
+    phx
 
-    A8
-    lda #1
-    sta timer_manager.pending_tick.w
+    clc
+    ldx timer_manager.elapsed_vblanks.w
+
+    @Loop:
+        @Elapsed:
+            lda timer_manager.elapsed_ms.w  ; V-Blank is 60Hz to 50Hz
+            adc #VBLANK_MS                  ; Add 16ms to the elapsed time
+            sta timer_manager.elapsed_ms.w  ; Store the new elapsed time
+
+            lda timer_manager.elapsed_us.w  ; V-Blank is 60Hz to 50Hz
+            adc #VBLANK_US                  ; Add 666us to the elapsed time
+            sta timer_manager.elapsed_us.w  ; Store the new elapsed time
+            cmp #1000                       ; Check if we've reached 1ms
+            bcc @Microseconds               ; If not, skip to updating the clock
+
+            lda #1000                       ; Subtract 1ms from the elapsed time (us)
+            sec                             ; Prepare carry flag
+            sbc timer_manager.elapsed_us.w  ; Calculate remainder
+            sta timer_manager.elapsed_us.w  ; Store the remainder
+            inc timer_manager.elapsed_ms.w  ; Increment the elapsed time (ms)
+
+        @Microseconds:
+            clc
+            lda timer_manager.clock.us.w
+            adc #VBLANK_US
+            sta timer_manager.clock.us.w
+            cmp #1000
+            bcc @Milliseconds; if (us_elapsed <= 1000)
+            sec                             ; Prepare carry flag
+            sbc #1000                       ; Calculate remainder
+            sta timer_manager.clock.us.w    ; Store the remainder
+            inc timer_manager.clock.ms.w    ; Increment the clock (ms)
+
+        @Milliseconds:
+            clc                             ; Add 16ms to the clock (ms)
+            lda timer_manager.clock.ms.w    ;
+            adc #VBLANK_MS                  ;
+            sta timer_manager.clock.ms.w    ; Store the new clock (ms)
+            cmp #1000                       ; Check if we've reached 1s
+            bcc @Done                       ; If not, we're done.
+            sec                             ; Prepare carry flag
+            sbc #1000                       ; Subtract 1ms from the clock (ms)
+            sta timer_manager.clock.ms.w    ; Store the remainder
+
+        A8
+
+        @Seconds:
+            inc timer_manager.clock.s.w     ; Increment the clock (s)
+            lda timer_manager.clock.s.w     ; Check if we've reached 60s
+            cmp #60                         ;
+            bcc @Done                       ; If not, we're done.
+
+        @Minutes:
+            stz timer_manager.clock.s.w     ; Reset the clock (s)
+            inc timer_manager.clock.m.w     ; Increment the clock (m)
+            lda timer_manager.clock.m.w     ; Check if we've reached 60m
+            cmp #60                         ;
+            bcc @Done                       ; If not, we're done.
+
+        @Hours:
+            stz timer_manager.clock.m.w     ; Reset the clock (m)
+            inc timer_manager.clock.h.w     ; Increment the clock (h)
+            lda timer_manager.clock.h.w
+            cmp #24
+            bcc @Done
+
+        @Days:
+            stz timer_manager.clock.h.w
+            inc timer_manager.clock.d.w
+            lda timer_manager.clock.d.w
+
+        @Done:
+            A16
+            dex
+            cpx #0
+            beq @Exit
+            jmp @Loop
+
+    @Exit:
+    stz timer_manager.elapsed_vblanks.w
     A16
-
+    plx
     pla
     rts
 
@@ -126,17 +228,14 @@ TimerManager_Frame:
     phx
     phy
 
-    ; if (timer_manager.pending_tick == 0)
-    ;    return;
-    A8
-    lda timer_manager.pending_tick.w
+    lda timer_manager.elapsed_vblanks.w
     cmp #0
-    stz timer_manager.pending_tick.w
-    A16
     beq @Done
 
+    jsr TimerManager_Tick
+
     ldy #MAX_TIMERS
-    ldx #timer_manager
+    ldx #timer_manager.timers
     @Loop:
         ; Timers not enabled aren't tracked
         lda timer.enabled, X
@@ -156,7 +255,7 @@ TimerManager_Frame:
         ; Decrement the remaining time
         lda timer.remaining_ms, X
         sec
-        sbc #TICK_MS
+        sbc timer_manager.elapsed_ms.w
         sta timer.remaining_ms, X
         bpl @Skip
 
@@ -176,10 +275,20 @@ TimerManager_Frame:
             cpy #0
             bne @Loop
 
+    ; Reset the elapsed ms time, since we are checking it now.
+    stz timer_manager.elapsed_ms.w
+
     @Done:
     ply
     plx
     pla
+    rts
+
+;
+; Increment the elapsed vblanks counter.
+;
+TimerManager_VBlank:
+    inc timer_manager.elapsed_vblanks.w
     rts
 
 ;
