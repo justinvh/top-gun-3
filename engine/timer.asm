@@ -142,7 +142,7 @@ TimerManager_Tick:
     ldx timer_manager.elapsed_vblanks.w
 
     @Loop:
-        @Elapsed:
+        @@Elapsed:
             lda timer_manager.elapsed_ms.w  ; V-Blank is 60Hz to 50Hz
             adc #VBLANK_MS                  ; Add 16ms to the elapsed time
             sta timer_manager.elapsed_ms.w  ; Store the new elapsed time
@@ -151,7 +151,7 @@ TimerManager_Tick:
             adc #VBLANK_US                  ; Add 666us to the elapsed time
             sta timer_manager.elapsed_us.w  ; Store the new elapsed time
             cmp #1000                       ; Check if we've reached 1ms
-            bcc @Microseconds               ; If not, skip to updating the clock
+            bcc @@Microseconds               ; If not, skip to updating the clock
 
             lda #1000                       ; Subtract 1ms from the elapsed time (us)
             sec                             ; Prepare carry flag
@@ -159,57 +159,57 @@ TimerManager_Tick:
             sta timer_manager.elapsed_us.w  ; Store the remainder
             inc timer_manager.elapsed_ms.w  ; Increment the elapsed time (ms)
 
-        @Microseconds:
+        @@Microseconds:
             clc
             lda timer_manager.clock.us.w
             adc #VBLANK_US
             sta timer_manager.clock.us.w
             cmp #1000
-            bcc @Milliseconds; if (us_elapsed <= 1000)
+            bcc @@Milliseconds; if (us_elapsed <= 1000)
             sec                             ; Prepare carry flag
             sbc #1000                       ; Calculate remainder
             sta timer_manager.clock.us.w    ; Store the remainder
             inc timer_manager.clock.ms.w    ; Increment the clock (ms)
 
-        @Milliseconds:
+        @@Milliseconds:
             clc                             ; Add 16ms to the clock (ms)
             lda timer_manager.clock.ms.w    ;
             adc #VBLANK_MS                  ;
             sta timer_manager.clock.ms.w    ; Store the new clock (ms)
             cmp #1000                       ; Check if we've reached 1s
-            bcc @Done                       ; If not, we're done.
+            bcc @@Done                       ; If not, we're done.
             sec                             ; Prepare carry flag
             sbc #1000                       ; Subtract 1ms from the clock (ms)
             sta timer_manager.clock.ms.w    ; Store the remainder
 
         A8
 
-        @Seconds:
+        @@Seconds:
             inc timer_manager.clock.s.w     ; Increment the clock (s)
             lda timer_manager.clock.s.w     ; Check if we've reached 60s
             cmp #60                         ;
-            bcc @Done                       ; If not, we're done.
+            bcc @@Done                       ; If not, we're done.
 
-        @Minutes:
+        @@Minutes:
             stz timer_manager.clock.s.w     ; Reset the clock (s)
             inc timer_manager.clock.m.w     ; Increment the clock (m)
             lda timer_manager.clock.m.w     ; Check if we've reached 60m
             cmp #60                         ;
-            bcc @Done                       ; If not, we're done.
+            bcc @@Done                       ; If not, we're done.
 
-        @Hours:
+        @@Hours:
             stz timer_manager.clock.m.w     ; Reset the clock (m)
             inc timer_manager.clock.h.w     ; Increment the clock (h)
             lda timer_manager.clock.h.w
             cmp #24
-            bcc @Done
+            bcc @@Done
 
-        @Days:
+        @@Days:
             stz timer_manager.clock.h.w
             inc timer_manager.clock.d.w
             lda timer_manager.clock.d.w
 
-        @Done:
+        @@Done:
             A16
             dex
             cpx #0

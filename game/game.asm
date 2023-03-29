@@ -36,7 +36,7 @@ Game_Frame:
     phx
     phy
 
-    ldx (game.game_clock_ptr.w)
+    ldx game.game_clock_ptr.w
     jsr Timer_Triggered
     cpy #1
     bne @Done
@@ -46,16 +46,28 @@ Game_Frame:
     ldx #game.player
     jsr Player_Frame
 
-    lda game.frame_counter.w
+    ldx game.test_ui_ptr.w
+
+    A8
+    lda #1
+    sta font_surface.locked, X
+
+    ; Mark the font surface locked and convert the clock counter
+    A16
+    lda timer_manager.clock.s.w
+    and #$00FF
     ldx #game.dynamic_text_buffer
     jsr String_FromInt
 
-    ; Mark the font surface dirty
-    ldx (game.test_ui_ptr.w)
+    ; Unlock the font surface and mark it dirty
+    A8
+    ldx game.test_ui_ptr.w
     lda #1
     sta font_surface.dirty, X
+    stz font_surface.locked, X
 
     @Done:
+    A16
     ply
     plx
     pla
@@ -89,7 +101,7 @@ Game_Init:
 
     jsr TimerManager_Request
     sty game.game_clock_ptr.w
-    ldx (game.game_clock_ptr.w)
+    tyx
     ldy #33
     jsr Timer_Init
 
@@ -151,9 +163,18 @@ Game_FontInit:
     lda #0
     sta font_surface.data_bank, X
 
-    ; Mark surface dirty
+    lda #_sizeof_game.dynamic_text_buffer
+    sta font_surface.data_len, X
+
+    ; Set 50ms timer to 1
+    lda #0
+    sta font_surface.time, X
+    sta font_surface.remaining_time, X
+
+    ; Mark surface dirty and unlock it
     lda #1
     sta font_surface.dirty, X
+    stz font_surface.locked, X
 
     A16
     ply
