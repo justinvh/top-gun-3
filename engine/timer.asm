@@ -219,7 +219,7 @@ TimerManager_Tick:
             jmp @Loop
 
     @Exit:
-    stz timer_manager.elapsed_vblanks.w
+    dec timer_manager.elapsed_vblanks.w
     A16
     plx
     pla
@@ -305,7 +305,7 @@ TimerManager_VBlank:
 ;
 ; Initialize a timer to be triggered after a certain number of milliseconds.
 ; X register is a pointer to the timer.
-; Y register is the number of milliseconds to trigger the timer.
+; A register is the number of milliseconds to trigger the timer.
 ;
 Timer_Init:
     pha
@@ -313,7 +313,6 @@ Timer_Init:
 
     stz timer.triggered, X
 
-    tya
     sta timer.timer_ms, X
     sta timer.remaining_ms, X
 

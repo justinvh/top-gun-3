@@ -105,7 +105,7 @@ FontManager_Init:
     sty font_manager.timer_ptr.w
 
     ; Create the 50ms timer for the font manager
-    lda #50
+    lda #48
     ldx font_manager.timer_ptr.w
     jsr Timer_Init
 
@@ -272,11 +272,78 @@ FontManager_RequestSurface:
 ;
 ; X register points to the font surface
 ;
-FontManager_Draw:
-    phb
+FontManager_DrawStep:
     pha
     phy
     phx
+    phb
+
+    clc
+
+    ; Get the relative index into the data pointer
+    lda font_surface.curr_idx, X
+    and #$00FF
+
+    ; Add the pointer to the data
+    adc font_surface.data_ptr, X
+
+    ; Save the pointer to the data (we'll need the right bank later)
+    pha ; 1, S
+
+    ; Compute the VRAM index by adding the tile index and current index
+    lda font_surface.curr_idx, X
+    and #$00FF
+    adc font_surface.tile_index, X
+    adc #BG3_TILEMAP_VRAM
+    sta VMADDL
+
+    ; Get the right bank for the data
+    A8
+    lda font_surface.data_bank, X
+    pha
+    plb
+    A16
+
+    pla
+    tax
+
+    A8
+    lda $0.w, X
+    cmp #0
+    beq @Done
+
+    sec
+    sbc #32
+
+    sta VMDATAL
+    stz VMDATAH
+
+    ; Write zeros for the remaining tiles
+    @Done:
+    plb
+    plx ; Pop off the X index pointer
+    inc font_surface.curr_idx, X
+    lda font_surface.curr_idx, X
+    @Loop:
+        stz VMDATAL
+        stz VMDATAH
+        ina
+        cmp font_surface.data_len, X
+        bne @Loop
+
+    A16
+    ply
+    pla
+    rts
+
+;
+; X register points to the font surface
+;
+FontManager_DrawAll:
+    pha
+    phy
+    phx
+    phb
 
     lda font_surface.tile_index, X
     pha ; 1, S
@@ -328,10 +395,14 @@ FontManager_Draw:
     @Done:
         A16
         pla ; Pop off the tile index
+        plb ; Restore the bank
         plx ; Pop off the X index pointer
         tya ; Increment off the accumulator
+        and #$00FF
+        A8
         @@Loop:
             stz VMDATAL
+            stz VMDATAH
             ina
             cmp font_surface.data_len, X
             bne @@Loop
@@ -340,7 +411,6 @@ FontManager_Draw:
         A16
         ply
         pla
-        plb
         rts
 
 FontManager_Frame:
@@ -467,7 +537,8 @@ FontManager_VBlank:
     phx
     phy
 
-    @Next:
+    @Loop:
+        A16
         ldx #font_manager.surface_queue
         jsr Queue_Pop
 
@@ -481,17 +552,37 @@ FontManager_VBlank:
         tax
 
         ; Reset the queued flag
+        A8
         stz font_surface.queued, X
 
         ; Locked surfaces are not drawn
         ; since their data is being modified
         lda font_surface.locked, X
-        and #$00FF
         cmp #1
-        beq @Next
+        beq @Loop
 
-        jsr FontManager_Draw
-        bra @Next
+        lda font_surface.time, X
+        cmp #0
+        bne @@DrawStepCheck
+
+        @@DrawAll:
+            A16
+            jsr FontManager_DrawAll
+            bra @Loop
+
+        @@DrawStepCheck:
+            lda font_surface.curr_idx, X
+            cmp font_surface.data_len, X
+            bne @@DrawStep
+            ; Reset the dirty flag, because we are done drawing
+            stz font_surface.curr_idx, X
+            stz font_surface.dirty, X
+            bra @Loop
+
+        @@DrawStep:
+            A16
+            jsr FontManager_DrawStep
+            bra @Loop
 
     @Done:
         ply

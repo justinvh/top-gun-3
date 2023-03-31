@@ -45,26 +45,31 @@ Game_Frame:
 
     ldx #game.player
     jsr Player_Frame
+    bra @Done
 
-    ldx game.test_ui_ptr.w
+    @ClockUITest:
+        ldx game.test_ui_ptr.w
 
-    A8
-    lda #1
-    sta font_surface.locked, X
+        A8
+        lda #1
+        sta font_surface.locked, X
 
-    ; Mark the font surface locked and convert the clock counter
-    A16
-    lda timer_manager.clock.s.w
-    and #$00FF
-    ldx #game.dynamic_text_buffer
-    jsr String_FromInt
+        ; Mark the font surface locked and convert the clock counter
+        A16
+        lda timer_manager.clock.s.w
+        and #$00FF
+        ;ldx game.game_clock_ptr.w
+        ;lda timer.elapsed_ms, X
+        ;stz timer.elapsed_ms, X
+        ldx #game.dynamic_text_buffer
+        jsr String_FromInt
 
-    ; Unlock the font surface and mark it dirty
-    A8
-    ldx game.test_ui_ptr.w
-    lda #1
-    sta font_surface.dirty, X
-    stz font_surface.locked, X
+        ; Unlock the font surface and mark it dirty
+        A8
+        ldx game.test_ui_ptr.w
+        lda #1
+        sta font_surface.dirty, X
+        stz font_surface.locked, X
 
     @Done:
     A16
@@ -102,7 +107,7 @@ Game_Init:
     jsr TimerManager_Request
     sty game.game_clock_ptr.w
     tyx
-    ldy #33
+    lda #8
     jsr Timer_Init
 
     ; Initialize the player
@@ -152,7 +157,7 @@ Game_FontInit:
     sta font_surface.enabled, X
 
     ; Provide pointer to text to draw
-    lda #game.dynamic_text_buffer
+    lda #Text_TopGun3@Data
     sta font_surface.data_ptr, X
 
     lda #Tile8x8(128, 128)
@@ -160,14 +165,14 @@ Game_FontInit:
 
     ; Provide bank of text to draw
     A8
-    lda #0
+    lda #Text_TopGun3@Bank
     sta font_surface.data_bank, X
 
-    lda #_sizeof_game.dynamic_text_buffer
+    lda #9
     sta font_surface.data_len, X
 
     ; Set 50ms timer to 1
-    lda #0
+    lda #1
     sta font_surface.time, X
     sta font_surface.remaining_time, X
 
