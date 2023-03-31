@@ -11,6 +11,7 @@
     triggered    dw
     timer_ms     dw
     remaining_ms dw
+    elapsed_ms   dw
 .endst
 
 .struct Clock
@@ -71,6 +72,7 @@ TimerManager_Init:
         stz timer.triggered, X
         stz timer.timer_ms, X
         stz timer.remaining_ms, X
+        stz timer.elapsed_ms, X
 
         ; Next timer
         txa
@@ -240,33 +242,42 @@ TimerManager_Frame:
         ; Timers not enabled aren't tracked
         lda timer.enabled, X
         cmp #0
-        beq @Skip
+        beq @@Next
 
         ; Timers not allocated aren't tracked
         lda timer.allocated, X
         cmp #0
-        beq @Skip
+        beq @@Next
 
         ; Triggered timers have to be reset
         lda timer.triggered, X
         cmp #1
-        beq @Skip
+        beq @@Next
+
+        ; For debugging, store the elapsed_ms
+        lda timer.elapsed_ms, X
+        adc timer_manager.elapsed_ms.w
+        sta timer.elapsed_ms, X
 
         ; Decrement the remaining time
-        lda timer.remaining_ms, X
-        sec
-        sbc timer_manager.elapsed_ms.w
-        sta timer.remaining_ms, X
-        bpl @Skip
+        @@RemainingMs:
+            lda timer.remaining_ms, X
+            sec
+            sbc timer_manager.elapsed_ms.w
+            bmi @@Triggered
+            sta timer.remaining_ms, X
+            cmp #1
+            bcs @@Next
 
         ; Timer has expired, set the triggered flag
-        lda timer.timer_ms, X
-        sta timer.remaining_ms, X
-        lda #1
-        sta timer.triggered, X
+        @@Triggered:
+            lda timer.timer_ms, X
+            sta timer.remaining_ms, X
+            lda #1
+            sta timer.triggered, X
 
         ; Next timer
-        @Skip:
+        @@Next:
             txa
             clc
             adc #_sizeof_Timer
