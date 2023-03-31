@@ -43,7 +43,7 @@
 ; $80 and higher are 3.58MHz accessible. 2.68MHz are limited for $00 - $80
 
 .LOROM
-.SLOWROM
+.FASTROM
 
 .ROMBANKMAP
     BANKSTOTAL 8
@@ -68,7 +68,7 @@
 
     ; We're using pages $00 - $80, which is Mode 1 memory and is slow
     ; at 2.68MHz as opposed to 3.58MHz for the fast rom banks.
-    SLOWROM
+    FASTROM
     LOROM
 
     ; 2 Megabit ROM with no SRAM

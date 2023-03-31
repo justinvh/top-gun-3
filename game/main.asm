@@ -74,16 +74,22 @@ Main:
     lda #$0F
     sta INIDISP
     
-    ; Enable interrupts and joypad polling
-    lda #$81
+    ; Enable NMI with H-IRQ and Autojoypad
+    ;     V-IR---J
+    lda #%10000001
     sta NMITIMEN
     cli
+
+    ; Start at Dot 255.
+    lda #$FF
+    stz HTIMEH
+    sta HTIMEL
 
     A16
 
     ; Main game loop
     @Main_Loop:
-        wai
+        jsr Engine_Frame
         jsr Game_Frame  ; Expects X to be the "this" pointer
         bra @Main_Loop  ; Loop forever
 

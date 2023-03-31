@@ -262,3 +262,8 @@
         dex                      ; Decrement the counter
         bpl @Memset_{NAME}       ; Branch if positive
 .endm
+
+;
+; WLA-DX function to calculate the 8x8 tile position from the X and Y coordinates
+;
+.function Tile8x8(x, y) ((x / 8) + (y / 8) * 32)
