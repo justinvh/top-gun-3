@@ -102,7 +102,6 @@ TimerManager_Request:
     ldx #timer_manager.timers
     @Loop:
         lda timer.allocated, X
-        cmp #0
         beq @Found
 
         ; Next timer
@@ -228,7 +227,6 @@ TimerManager_Frame:
     phy
 
     lda timer_manager.elapsed_vblanks.w
-    cmp #0
     beq @Done
 
     jsr TimerManager_Tick
@@ -238,12 +236,10 @@ TimerManager_Frame:
     @Loop:
         ; Timers not enabled aren't tracked
         lda timer.enabled, X
-        cmp #0
         beq @@Next
 
         ; Timers not allocated aren't tracked
         lda timer.allocated, X
-        cmp #0
         beq @@Next
 
         ; Triggered timers have to be reset

@@ -16,7 +16,6 @@ String_Length:
 
     @Loop:
         lda $0, X
-        cmp #0
         bne @Continue
         bra @Done
 
@@ -116,7 +115,6 @@ String_FromInt:
 
         ; n /= 10
         tya
-        cmp #0
         bne @Loop
 
     ; X = pointer to beginning of string
