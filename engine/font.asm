@@ -229,7 +229,6 @@ FontManager_RequestSurface:
     @Loop:
         A8
         lda font_surface.allocated, X
-        cmp #0
         beq @Found
 
         ; Next font surface
@@ -241,7 +240,6 @@ FontManager_RequestSurface:
 
         ; Check if we're done
         dey
-        cpy #0
         bne @Loop
 
     ; No font surfaces available
@@ -309,7 +307,6 @@ FontManager_DrawStep:
 
     A8
     lda $0.w, X
-    cmp #0
     beq @Done
 
     sec
@@ -377,7 +374,6 @@ FontManager_DrawAll:
 
         A8
         lda $0.w, X
-        cmp #0
         beq @Done
 
         ; Offset by the ASCII table (32 = space)
@@ -462,17 +458,14 @@ FontManager_Frame:
         ; Check if the font draw info has a timer
         @@CheckHasTimer:
             lda font_surface.time, X
-            cmp #0
             beq @@Draw
 
             @@@CheckTimerExpired:
                 ; Check if the timer is triggered
                 lda 1, S ; 1 if the timer is triggered
-                cmp #0
                 beq @@Continue
                 dec font_surface.remaining_time, X
                 lda font_surface.remaining_time, X
-                cmp #0
                 bne @@Continue
 
             @@@ResetTimer:
@@ -517,7 +510,6 @@ FontManager_Frame:
             ; Decrement the counter
             A16
             dey
-            cpy #0
 
             ; If the counter is not 0, loop
             bne @Loop
@@ -562,7 +554,6 @@ FontManager_VBlank:
         beq @Loop
 
         lda font_surface.time, X
-        cmp #0
         bne @@DrawStepCheck
 
         @@DrawAll:

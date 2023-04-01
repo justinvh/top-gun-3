@@ -82,7 +82,6 @@ TimerManager_Init:
 
         ; Check if we're done
         dey
-        cpy #0
         bne @Loop
 
     @Done:
@@ -114,7 +113,6 @@ TimerManager_Request:
 
         ; Check if we're done
         dey
-        cpy #0
         bne @Loop
 
     ; No timers available
@@ -214,7 +212,6 @@ TimerManager_Tick:
         @@Done:
             A16
             dex
-            cpx #0
             beq @Exit
             jmp @Loop
 
@@ -283,7 +280,6 @@ TimerManager_Frame:
             adc #_sizeof_Timer
             tax
             dey
-            cpy #0
             bne @Loop
 
     ; Reset the elapsed ms time, since we are checking it now.
