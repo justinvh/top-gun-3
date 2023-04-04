@@ -4,8 +4,7 @@
 
 
 .struct Tile
-    id          db ; ID of the tile
-    version     db ;
+    id          dw ; 10-bit ID of the tile
     index       dw ; 8x8 32-width index
 .endst
 
@@ -409,15 +408,17 @@ Map_LoadTiles:
     @LoadTile:
         ; Set the tilemap address
         clc
-        lda tile.index, X
+        lda tile.index.w, X
         adc #BG1_TILEMAP_VRAM   ; This is hacky.
         sta VMADDL
 
         ; Save tile reference
-        lda tile.id, X
-        dea
+        lda tile.id.w, X
+        A8
         sta VMDATAL
-        stz VMDATAH
+        xba
+        sta VMDATAH
+        A16
 
         ; Advance the pointer
         txa

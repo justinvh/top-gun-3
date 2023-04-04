@@ -97,8 +97,8 @@ Game_Init:
     jsr Memset
 
     ; Load a demo map
-    lda #Map_Demo@Bank
-    ldy #Map_Demo@Data
+    lda #Map_Skyscraper@Bank
+    ldy #Map_Skyscraper@Data
     jsr MapManager_Load
 
     ; Initialize all font data

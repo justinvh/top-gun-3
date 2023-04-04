@@ -75,8 +75,7 @@ class Exporter:
 
 class Tile(Exporter):
     fields = [
-        ('id', 'B'),
-        ('version', 'B'),
+        ('id', 'H'),
         ('index', 'H'),
     ]
 
@@ -161,7 +160,7 @@ class Map(Exporter):
         layer = tiled_map.layers[0]
 
         # (HACK): Not support multiple sprite sheets
-        sprite_sheet = None
+        sprite_sheet = pathlib.Path(tmx_map).parent / pathlib.Path(tiled_map.tilesets[0].source)
 
         # Load all non-zero tile from the layer.
         for x, y, gid in layer.iter_data():
@@ -171,13 +170,15 @@ class Map(Exporter):
             tid = tiled_map.tiledgidmap[gid]
 
             # Add the tile and increment the counter tracking
-            index = (y * 32) + x # (HACK): Hardcoded map size and assumes 8x8
-            tile = Tile(tid, version=0, index=index)
+            index = (y * self.tile_width) + x
+
+            # Remap the tile id to the correct index for the SNES VRAM
+            ntid = (self.tile_width // 8) * (tid - 1)
+            ntid += ((tid - 1) // 8) * self.tile_width
+
+            tile = Tile(ntid, version=0, index=index)
             self.append(tile)
             self.num_tiles += 1
-
-            # Extract the sprite sheet referenced by the tile gid
-            sprite_sheet = pathlib.Path(layer.parent.images[gid][0])
 
             # Update the sprite offset for data tracking
             self.sprite_offset += tile.num_bytes()
@@ -189,8 +190,8 @@ class Map(Exporter):
         sprite = SpriteSheet()
         sprite.magic = bytearray(b'SPR')
         sprite.bpp = 4
-        sprite.width = 8
-        sprite.height = 8
+        sprite.width = 16
+        sprite.height = 16
         sprite.num_rows = 3
         sprite.num_cols = 3
         path = sprite_sheet.with_suffix('.bin')
