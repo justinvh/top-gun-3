@@ -25,6 +25,13 @@ Renderer_Init:
     phx
     phy
 
+    A8
+    lda #255
+    sta BG1VOFS
+    lda #128
+    sta BG1VOFS
+    A16
+
     ; Memset should take care of these initializations, but we do it here
     ; anyways if we ever need to re-initialize the renderer.
     ldx #renderer.bg_screen.w
@@ -52,7 +59,12 @@ Renderer_VBlank:
     pha
 
     inc renderer.bg_screen.1.h_offset.w
+    inc renderer.bg_screen.1.h_offset.w
+    inc renderer.bg_screen.1.h_offset.w
     inc renderer.bg_screen.1.v_offset.w
+
+    inc renderer.bg_screen.2.h_offset.w
+
 
     @UpdateBGOffsets:
         .16bit
@@ -61,6 +73,12 @@ Renderer_VBlank:
         sta BG1HOFS
         lda renderer.bg_screen.1.h_offset.w + 1
         sta BG1HOFS
+
+        lda renderer.bg_screen.2.h_offset.w
+        sta BG2HOFS
+        lda renderer.bg_screen.2.h_offset.w + 1
+        sta BG2HOFS
+
         A16
         .8bit
 

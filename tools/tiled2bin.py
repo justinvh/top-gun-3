@@ -82,8 +82,13 @@ class Tile(Exporter):
     def __init__(self, pk, version, index):
         super().__init__()
         self.id = pk
-        self.version = version
         self.index = index
+
+class Background(Exporter):
+    fields = [
+        ('id', 'H'),
+        ('num_tiles', 'H'),
+    ]
 
 
 class SpriteSheet(Exporter):
@@ -110,13 +115,13 @@ class Map(Exporter):
         ('magic', '3B'),
         ('version', 'B'),
         ('name', '16B'),
-        ('num_tiles', 'H'),
-        ('num_objects', 'H'),
+        ('num_backgrounds', 'B'),
+        ('num_objects', 'B'),
         ('tile_width', 'B'),
         ('tile_height', 'B'),
         ('height', 'B'),
         ('width', 'B'),
-        ('tile_offset', 'H'),
+        ('background_offset', 'H'),
         ('sprite_offset', 'H'),
         ('palette_offset', 'H'),
         ('object_offset', 'H'),
@@ -150,11 +155,11 @@ class Map(Exporter):
         self.width = tiled_map.width
         self.height = tiled_map.height
 
-        # (HACK): Tile offset is fixed by field offset in the map struct.
-        self.tile_offset = sum(struct.calcsize(fmt) for _, fmt in self.fields)
+        # (HACK): Background offset is fixed by field offset in the map struct.
+        self.background_offset = sum(struct.calcsize(fmt) for _, fmt in self.fields)
 
         # This will be updated as each tile is added
-        self.sprite_offset = self.tile_offset
+        self.sprite_offset = self.background_offset
 
         # (HACK): Not supporting multiple layers
         layer = tiled_map.layers[0]
@@ -163,25 +168,34 @@ class Map(Exporter):
         sprite_sheet = pathlib.Path(tmx_map).parent / pathlib.Path(tiled_map.tilesets[0].source)
 
         # Load all non-zero tile from the layer.
-        for x, y, gid in layer.iter_data():
-            if gid == 0:
+        for layer in tiled_map.layers:
+            if not layer.name.startswith('BG'):
                 continue
 
-            tid = tiled_map.tiledgidmap[gid]
+            background = Background()
+            background.num_tiles = 0
+            background.id = int(layer.name[-1])
+            for x, y, gid in layer.iter_data():
+                if gid == 0:
+                    continue
 
-            # Add the tile and increment the counter tracking
-            index = (y * self.tile_width) + x
+                tid = tiled_map.tiledgidmap[gid]
 
-            # Remap the tile id to the correct index for the SNES VRAM
-            ntid = (self.tile_width // 8) * (tid - 1)
-            ntid += ((tid - 1) // 8) * self.tile_width
-
-            tile = Tile(ntid, version=0, index=index)
-            self.append(tile)
-            self.num_tiles += 1
+                # Add the tile and increment the counter tracking
+                index = (y * 0x20) + x # (HACK): Hardcoded map size and assumes 8x8
+                ntid = 2 * (tid - 1)
+                ntid += ((tid - 1) // 8) * 16
+                tile = Tile(ntid, version=0, index=index)
+                background.append(tile)
+                background.num_tiles += 1
+            print(f'num_tiles: {hex(background.num_tiles)}')
 
             # Update the sprite offset for data tracking
-            self.sprite_offset += tile.num_bytes()
+            self.sprite_offset += background.num_bytes()
+            self.num_backgrounds += 1
+
+            # Update the background data for the map
+            self.append(background)
 
         # Update the palette offset for data tracking
         self.palette_offset = self.sprite_offset
