@@ -33,10 +33,12 @@ Player_OAMRequest:
 
     jsr OAMManager_Request
 
-    ; VRAM address 0 is a transparent tile. 1 is a grass tile in the test.
+    ; VRAM address 0 is a transparent tile.
     A8
-    lda #1
+    lda #10
     sta oam_object.vram, Y
+    lda #3
+    sta oam_object.priority, Y
     A16
 
     phx
@@ -73,7 +75,6 @@ Player_Input:
     jsr Player_DnBtn
     jsr Player_LftBtn
     jsr Player_RhtBtn
-    tax
 
     plx
     pla
@@ -109,7 +110,6 @@ Player_DnBtn:
     A8
     inc oam_object.y, X
     A16
-
     jsr OAM_MarkDirty
     @Done:
         ply
@@ -128,6 +128,7 @@ Player_LftBtn:
     A8
     dec oam_object.x, X
     A16
+    jsr Renderer_TestMoveScreenLeft 
     jsr OAM_MarkDirty
     @Done:
         ply
@@ -146,6 +147,7 @@ Player_RhtBtn:
     A8
     inc oam_object.x, X
     A16
+    jsr Renderer_TestMoveScreenRight
     jsr OAM_MarkDirty
     @Done:
         ply
