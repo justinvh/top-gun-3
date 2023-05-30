@@ -202,7 +202,6 @@ Game_VBlank:
     ;jsr Renderer_TestHScroll
 
     ldx #game.player
-    jsr Player_VBlank
 
     rts
 

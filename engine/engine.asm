@@ -31,6 +31,7 @@ Engine_Init:
     jsr TimerManager_Init
     jsr MapManager_Init
     jsr FontManager_Init
+    jsr InputManager_Init
     jsr Renderer_Init
 
     ;        S4321
@@ -51,6 +52,7 @@ Engine_VBlank:
     jsr TimerManager_VBlank
     jsr OAMManager_VBlank
     jsr FontManager_VBlank
+    jsr Input_VBlank
     rts
 
 .ends
