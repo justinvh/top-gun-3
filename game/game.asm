@@ -7,13 +7,16 @@
 .include "game/fonts.i"
 .include "game/strings.i"
 .include "game/player.asm"
+.include "game/characters/characters.asm"
 
 .ACCU	16
 .INDEX	16
 
 .struct Game
     frame_counter dw            ; Frame counter (increments every frame)
-    player instanceof Player
+    characters instanceof Characters
+    player_1 instanceof Player
+    player_2 instanceof Player
     game_clock_ptr dw
     test_ui_ptr dw              ; Pointer to the requested test UI component
     dynamic_text_buffer ds 8    ; Buffer for dynamic text
@@ -43,7 +46,10 @@ Game_Frame:
 
     inc game.frame_counter.w        ; Increment frame counter
 
-    ldx #game.player
+    ldx #game.player_1
+    jsr Player_Frame
+
+    ldx #game.player_2
     jsr Player_Frame
     bra @Done
 
@@ -114,8 +120,17 @@ Game_Init:
     lda #8
     jsr Timer_Init
 
-    ; Initialize the player
-    ldx #game.player
+    ; Initialize Characters
+    ldx #game.characters
+    jsr Characters_Init
+
+    ; Initialize the players
+    ldy #game.characters.character_1
+    ldx #game.player_1
+    jsr Player_Init
+
+    ldy #game.characters.character_2
+    ldx #game.player_2
     jsr Player_Init
 
     plx
@@ -201,16 +216,6 @@ Game_VBlank:
     jsr Engine_VBlank
     ;jsr Renderer_TestHScroll
 
-    ldx #game.player
-
     rts
-
-; Game_CheckPlayerStart:
-;     ; call inputclass to check which players have start\
-;     bne @Done
-
-;     @Done:
-
-;     rts
 
 .ends
