@@ -52,6 +52,8 @@ Renderer_Frame:
 Renderer_VBlank:
     pha
 
+    jsr Renderer_TestMoveScreenRight
+
     @UpdateBGOffsets:
         .16bit
         A8
@@ -121,7 +123,7 @@ Renderer_TestMoveScreenLeft:
 
 Renderer_TestMoveScreenRight:
     pha
-    lda #5
+    lda #8
     adc renderer.bg_screen.1.h_offset.w
     sta renderer.bg_screen.1.h_offset.w
     lda #2

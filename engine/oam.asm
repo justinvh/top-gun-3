@@ -1,60 +1,4 @@
-; What is an object?
-; ==================
-; Objects are the primitive that associate sprites. Any small graphic that
-; can move independent of the background is an object. They can use the
-; palettes from 8-15 and are 4BPP that can be 8x8, 16x16, 32x32, 64x64.
-;
-; Overview
-; ========
-; The maximum number of objects that can be displayed on the screen is 128.
-; A frame can have two sizes of objects and each object can be one of the two
-; sizes. Each frame can have 8 color palettes and an object can use one of the
-; palettes. Each palette is 16 colors out of 32,768 colors.
-;
-; During Initial Settings
-; =======================
-; - Set register <2101H> to set the object size, name select, and base address.
-; - Set D1 of register <2133H> to set the object V select.
-; - Set D4 of register <212CH> for "Through Main Obj" settings.
-;
-; During Forced Blank
-; ===================
-; - Set register <2115H> to set V-RAM address sequence mode. H/L increments.
-; - Set register <2116H> ~ <2119H> to set the V-RAM address and data.
-; - Transfer all the object character data to VRAM through the DMA registers.
-; - Set register <2121H>, <2122H> to set color palette address and data.
-;
-; During V-BLANK
-; ==============
-; - Set register <2102H> ~ <2104H> to set OAM address, priority, and data.
-; - Transfer object data to OAM via DMA.
-;
-; OAM Addressing
-; ===============
-;                              OBJECT 0
-;     | 15 | 14 | 13 | 12 | 11 | 10 | 9 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
-;     |----|----|----|----|----|----|---|---|---|---|---|---|---|---|---|---|
-; 000 | ~~~~~Object V-Position~~~~~~~~~~~~~ | ~~~~~Object H-Position~~~~~~~ |
-;     | 7  | 6  | 5  | 4  | 3  | 2  | 1 | 0 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
-; 001 | ~FLIP~  | ~PRIOR~ |    ~COLOR~  | ~~~~~~~~~~~~~~~NAME~~~~~~~~~~~~~~ |
-;     | V  | H  | 1  | 0  | 2  | 1  | 0 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
-;  .    ^         ^         ^             ^
-;       |         |         |              \ Character code number
-;       |         |         \ Designate palette for the character
-;       |          \Determine the display priority when objects overlap
-;        \ X-direction and Y-direction flip. (0 is normal, 1 is flip)
-;
-; Repeats for 128 objects and then addresses 256 - 271 are for extra bits.
-;
-;  .                          OBJECT 7...0
-; 256 | 15 | 14 | 13 | 12 | 11 | 10 | 9 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
-;     |   OBJ7  |  OBJ6   |   OBJ5  |  OBJ4 | OBJ3  | OBJ2  | OBJ1  | OBJ0  |
-;     | S  | Z  | S  | Z  | S  | Z  | S | Z | S | Z | S | Z | S | Z | S | Z |
-;       ^    ^
-;       |    \ Base position of the Object on the H-direction
-;       \ Size large/small (0 is small)
-;
-;
+
 ;
 ; This module is responsible for managing the OAM object requests. It is meant
 ; to be used in conjunction with Sprites that need a number of OAM objects to
@@ -73,7 +17,7 @@
 
 ;  (intentionally aligned with BG1 for testing)
 ; Remember these are 16-bit word addresses
-.define OAM_DEFAULT_OBJSEL %00000001  ; 8x8/16x16 Page 0 @ $2000, Page 1 @ $3000
+.define OAM_DEFAULT_OBJSEL %00100011  ; 8x8/16x16 Page 0 @ $6000, Page 1 @ $7000
 
 ;
 ; OAM Object Properties
@@ -82,12 +26,18 @@
 ; in memory and then assign it to the OAM.
 ;
 .struct OAMObject
-    index        db  ; This is the index of where the object should be in OAM
+    index        db  ; This is the 0..127 index of the object
+    low_table    db  ; This is the low-table word into the OAM table (128 words)
+    high_table   db  ; This is the high-table word into the OAM table (16 words)
+    bitmask_size db  ; This is the bitmask for the size of the object
+    bitmask_xpos db  ; This is the bitmask for the x position of the object
     dirty        db  ; This flag is true if the object has been modified
     allocated    db  ; This flag is true if the object is current bound
     visible      db  ; If 0, the the MSB for the h-position is set to 1 to make it invisible
     size         db  ; 0 = 8x8, 1 = 16x16, 2 = 32x32, 3 = 64x64
     bpp          db  ;
+    bx           dw  ; This is the pointer to the base x position of the sprite
+    by           dw  ; This is the pointer to the base y position of the sprite
     x            db  ; This is the horizontal position of the sprite
     y            db  ; This is the vertical position of the sprite
     vram         db  ;
@@ -119,6 +69,20 @@
 nop
 
 ;
+; This is stupid, but I don't want to go compute this during the OAM
+; write time, so just use a static lookup table
+;
+OAM_SizeTable:
+    .repeat 128
+        .db $02, $08, $20, $80
+    .endr
+
+OAM_XPosTable:
+    .repeat 128
+        .db $01, $04, $10, $40
+    .endr
+
+;
 ; OAM Object Properties initialization
 ; X index register should point to the object
 ; Initializes the object
@@ -126,64 +90,28 @@ nop
 OAMObject_Init:
     ; Zeroize the object
     A8
-    stz oam_object.index, X
+    stz oam_object.low_table, X
+    stz oam_object.high_table, X
+    stz oam_object.bitmask_size, X
+    stz oam_object.bitmask_xpos, X
     stz oam_object.allocated, X
     stz oam_object.visible, X
     stz oam_object.size, X
-    stz oam_object.x, X
+    lda #255
+    sta oam_object.x, X
     stz oam_object.y, X
     stz oam_object.vram, X
     stz oam_object.palette, X
-    stz oam_object.priority, X
+    lda #2
+    sta oam_object.priority, X
     stz oam_object.flip_h, X
     stz oam_object.flip_v, X
     A16
-    rts
 
-;
-; Random OAM Object Properties initialization
-; X index register should point to the object
-; Y should be the index
-;
-OAMObject_RandomInit:
-    ; Zeroize the object
-    A8
+    ; Pointers to the base x and y position controlling the location of the OAM
+    stz oam_object.bx, X
+    stz oam_object.by, X
 
-    tya
-    sta oam_object.index, X
-
-    ; Object is default not allocated
-    stz oam_object.allocated, X
-
-    lda #random(0, 254)
-    sta oam_object.x, X
-
-    lda #random(0, 254)
-    sta oam_object.y, X
-
-    lda #1
-    sta oam_object.visible, X
-
-    lda #8
-    sta oam_object.bpp, X
-
-    lda #random(0, 3)
-    sta oam_object.vram, X
-    stz oam_object.size, X
-
-    lda #random(0, 1)
-    sta oam_object.flip_h, X
-
-    lda #random(0, 1)
-    sta oam_object.flip_v, X
-
-    lda #random(0, 3)
-    sta oam_object.priority, X
-
-    ;lda #random(0, 7)
-    stz oam_object.palette, X
-
-    A16
     rts
 
 ;
@@ -191,6 +119,103 @@ OAMObject_RandomInit:
 ; X index register should point to the object
 ;
 OAMObject_Write:
+    jsr OAMObject_WriteLowTable
+    jsr OAMObject_WriteHighTable
+    rts
+
+OAMObject_WriteHighTable:
+    pha
+    phx
+    phy
+
+    ; Set the OAM address for the high table
+    A8
+    lda #1
+    sta OAMADDH
+
+    lda oam_object.high_table, X
+    lsr
+    sta OAMADDL
+
+    ; Read the current value of the high table (includes other OAM data)
+    ; If the low bit is set, then we need to read twice since it is a 16-bit word
+    lda oam_object.high_table, X
+    and #$1
+    beq @ReadOnce
+    lda OAMDATAREAD
+    @ReadOnce:
+        lda OAMDATAREAD
+
+    pha
+
+    ; if (oam_object.size == 1) 
+    @CheckSizeBit:
+        lda oam_object.size, X
+        cmp #1
+        beq @SetSizeBit
+
+    @ClearSizeBit:
+        ; ~bitmask_size | OAMDATAREAD
+        lda oam_object.bitmask_size, X
+        eor #$FF
+        and 1, S
+        sta 1, S
+        bra @CheckXPosBit
+
+    @SetSizeBit:
+        lda oam_object.bitmask_size, X
+        ora 1, S
+        sta 1, S
+        bra @CheckXPosBit
+
+    @CheckXPosBit:
+        ; if (oam_object.x >= 255)
+        A16
+        lda oam_object.x, X
+        cmp #$FF
+        A8
+        bne @ClearXPosBit
+
+    @SetXPosBit:
+        lda oam_object.bitmask_xpos, X
+        ora 1, S
+        sta 1, S
+        bra @Done
+
+    @ClearXPosBit:
+        lda oam_object.bitmask_xpos, X
+        eor #$FF
+        and 1, S
+        sta 1, S
+        bra @Done
+
+    @Done:
+        pha
+        lda oam_object.high_table, X
+        lsr
+        sta OAMADDL
+
+        ; Similar to before, figure out if we are doing a read/write or write
+        lda oam_object.high_table, X
+        and #$1
+        beq @WriteData
+
+        @ReadThenWrite:
+            lda OAMDATAREAD
+
+        @WriteData:
+            ; Write data
+            pla
+            sta OAMDATA
+        pla
+
+    A16
+    ply
+    plx
+    pla
+    rts
+
+OAMObject_WriteLowTable:
     pha
     phy
 
@@ -200,6 +225,7 @@ OAMObject_Write:
     lda oam_object.index, X
     and #$00FF
     tax
+
     ldy #0
     jsr OAM_Index
     plx
@@ -207,12 +233,24 @@ OAMObject_Write:
     A8
 
     ; Store the X position
-    lda oam_object.x, X
-    sta OAMDATA
+    lda #0
+    ldy oam_object.bx, X
+    cpy #0
+    beq @SetXPos
+    lda $0, Y
+    @SetXPos:
+        adc oam_object.x, X
+        sta OAMDATA
 
     ; Store the Y position
-    lda oam_object.y, X
-    sta OAMDATA
+    lda #0
+    ldy oam_object.by, X
+    cpy #0
+    beq @SetYPos
+    lda $0, Y
+    @SetYPos:
+        adc oam_object.y, X
+        sta OAMDATA
 
     ; Store the VRAM address
     lda oam_object.vram, X
@@ -325,7 +363,6 @@ OAM_Init:
 ;
 ; Get the index of the OAM address for the object.
 ; X index register should be the object's id (0..127)
-; Y index register should be word offset (0 or 1)
 ; Accumulator is set to the OAM address.
 ;
 OAM_Index:
@@ -564,8 +601,35 @@ OAMManager_Init:
     ldy #0
 
     @Loop:
+        pha
         jsr OAMObject_Init      ; Initialize the current OAM object (X register points to it)
-        sty oam_object.index, X ; Set the index of the object to its position in the array
+
+        A8
+        tya
+        sta oam_object.index, X ; Set the index of the object to its position in the array
+
+        ; Compute word offset into the OAM low table (16 bits per object)
+        asl
+        sta oam_object.low_table, X
+
+        ; Compute word offset into the OAM high table (2 bits per object)
+        tya
+        lsr
+        lsr
+        sta oam_object.high_table, X
+
+        ; Compute bitmask for the size of the object
+        lda OAM_SizeTable, Y
+        sta oam_object.bitmask_size, X
+
+        ; Compute bitmask for the x position of the object
+        lda OAM_XPosTable, Y
+        sta oam_object.bitmask_xpos, X
+        A16
+
+        jsr OAMObject_Write
+
+        pla
         clc
         adc #_sizeof_OAMObject   ; Advance the pointer
         tax                     ; Make it the new X register
@@ -639,41 +703,45 @@ OAMManager_Request:
     ; Advance the pointer to the first OAM object in the struct
     clc
     lda #oam_manager.oam_objects
-    sec
-    sbc #_sizeof_OAMObject       ; Intentionally start at -1
     tax
 
     ; Stupidly simple, just iterate through the OAM objects and
     ; return the first one that is not allocated
     ldy #0
 
-    @Next:
+    @FindNextFreeObject:
+        ; Check if the object is allocated
+        lda oam_object.allocated, X
+        and #$00FF
+        beq @MarkAllocated
+
+        ; Advance the pointer
         clc
         txa
-        adc #_sizeof_OAMObject   ; Advance the pointer
+        adc #_sizeof_OAMObject
         tax
 
         ; Did we reach the end of the OAM object space?
         iny
         cpy #MAX_OAM_OBJECTS
-        beq @Error
+        beq @OutOfSpace
 
-        ; Otherwise check if the object is allocated
-        lda oam_object.allocated, X
-        and #$00FF
-
-        bne @Next
+        ; Continue to the next iteration
+        bra @FindNextFreeObject
 
     ; If we got here, then we found a free object. Mark ita llocated
-    lda #1
-    sta oam_object.allocated, X
+    @MarkAllocated:
+        A8
+        lda #1
+        sta oam_object.allocated, X
+        A16
 
-    ; Return the address of the OAM object
-    txy
-    bra @Done
+        ; Return the address of the OAM object
+        txy
+        bra @Done
 
     ; If we got here, then we did not find a free object
-    @Error:
+    @OutOfSpace:
         ldy #0
 
     ; Common exit point. We do not restore Y because we want to return it.
@@ -697,6 +765,7 @@ OAMManager_Release:
 
     ; Mark the OAM object as not allocated. stz only works with X register.
     tyx
+    jsr OAMObject_Init
     stz oam_object.allocated, X
 
     A16
@@ -731,7 +800,9 @@ OAMManager_VBlank:
 
         ; If we got here, then we found a dirty object. Render it.
         jsr OAMObject_Write
+        A8
         stz oam_object.dirty, X
+        A16
         bra @Next
 
     @Done:
