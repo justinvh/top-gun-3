@@ -1,7 +1,3 @@
-.section "Player" BANK 0 SLOT "ROM"
-
-nop
-
 .struct Player
     id               db ; Player ID
     oam_obj_ptr      dw ; Pointer to the requested OAM object
@@ -12,6 +8,9 @@ nop
 .enum $0000
     player instanceof Player
 .ende
+
+.section "Player" BANK 0 SLOT "ROM"
+nop
 
 Player_Init:
     phy
@@ -90,31 +89,42 @@ Player_UpBtn:
     and #1
     beq @Done
 
+    phx
     ; Restore X pointing to the player object
-    lda 1, S
+    lda 3, S
     tax
 
     ; Now use X and Y index registers for oam object and char object pointers
     lda player.char_obj_ptr, X
-    sec
-    adc 1
+    ina
     tay
 
-    ; OAM object pointer is setup for any OAM calls now
-    lda player.oam_obj_ptr, X
-    tax
+    ; Load Input Pointer
+    plx
 
-    ; Update the OAM object location by subtracting the speed from it
-    ; This keeps our 8-bit operations all isolated
-    A8
-    sec
-    lda oam_object.y, X
-    sbc character_attr.speed, Y
-    sta oam_object.y, X
-    A16
+    ; Load Player Speed
+    lda character_attr.speed, Y
 
-    ; Update OAM (X pointer is already set)
-    jsr OAM_MarkDirty
+    pha ; Store Speed
+
+    @Move_Sprite:
+        iny
+        iny
+        iny
+        A16
+        lda $00, Y
+        tax
+
+        ; Load Sprite Info
+        A8
+        lda sprite_desc.y, X
+        sec
+        sbc 1, S
+        sta sprite_desc.y, X
+        jsr Sprite_MarkDirty
+
+        pla
+        A16
 
     @Done:
         plx
@@ -132,31 +142,42 @@ Player_DnBtn:
     and #1
     beq @Done
 
+    phx
     ; Restore X pointing to the player object
-    lda 1, S
+    lda 3, S
     tax
 
     ; Now use X and Y index registers for oam object and char object pointers
     lda player.char_obj_ptr, X
-    sec
-    adc 1
+    ina
     tay
 
-    ; OAM object pointer is setup for any OAM calls now
-    lda player.oam_obj_ptr, X
-    tax
+    ; Load Input Pointer
+    plx
 
-    ; Update the OAM object location by subtracting the speed from it
-    ; This keeps our 8-bit operations all isolated
-    A8
-    sec
-    lda oam_object.y, X
-    adc character_attr.speed, Y
-    sta oam_object.y, X
-    A16
+    ; Load Player Speed
+    lda character_attr.speed, Y
 
-    ; Update OAM (X pointer is already set)
-    jsr OAM_MarkDirty
+    pha ; Store Speed
+
+    @Move_Sprite:
+        iny
+        iny
+        iny
+        A16
+        lda $00, Y
+        tax
+
+        ; Load Sprite Info
+        A8
+        lda sprite_desc.y, X
+        clc
+        adc 1, S
+        sta sprite_desc.y, X
+        jsr Sprite_MarkDirty
+
+        pla
+        A16
 
     @Done:
         plx
@@ -174,32 +195,44 @@ Player_LftBtn:
     and #1
     beq @Done
 
+    phx
     ; Restore X pointing to the player object
-    lda 1, S
+    lda 3, S
     tax
 
     ; Now use X and Y index registers for oam object and char object pointers
     lda player.char_obj_ptr, X
-    sec
-    adc 1
+    ina
     tay
 
-    ; OAM object pointer is setup for any OAM calls now
-    lda player.oam_obj_ptr, X
-    tax
+    ; Load Input Pointer
+    plx
 
-    ; Update the OAM object location by subtracting the speed from it
-    ; This keeps our 8-bit operations all isolated
-    A8
-    sec
-    lda oam_object.x, X
-    sbc character_attr.speed, Y
-    sta oam_object.x, X
-    A16
+    ; Load Player Speed
+    lda character_attr.speed, Y
 
-    ; Update OAM (X pointer is already set)
+    pha ; Store Speed
+
+    @Move_Sprite:
+        iny
+        iny
+        iny
+        A16
+        lda $00, Y
+        tax
+
+        ; Load Sprite Info
+        A8
+        lda sprite_desc.x, X
+        sec
+        sbc 1, S
+        sta sprite_desc.x, X
+        jsr Sprite_MarkDirty
+
+        pla
+        A16
+
     jsr Renderer_TestMoveScreenLeft
-    jsr OAM_MarkDirty
 
     @Done:
         plx
@@ -217,32 +250,85 @@ Player_RhtBtn:
     and #1
     beq @Done
 
+    phx
     ; Restore X pointing to the player object
-    lda 1, S
+    lda 3, S
     tax
 
     ; Now use X and Y index registers for oam object and char object pointers
     lda player.char_obj_ptr, X
-    sec
-    adc 1
+    ina
     tay
 
-    ; OAM object pointer is setup for any OAM calls now
-    lda player.oam_obj_ptr, X
-    tax
+    ; Load Input Pointer
+    plx
 
-    ; Update the OAM object location by subtracting the speed from it
-    ; This keeps our 8-bit operations all isolated
-    A8
-    sec
-    lda oam_object.x, X
-    adc character_attr.speed, Y
-    sta oam_object.x, X
-    A16
+    ; Store tag
+    lda #Sprite_Plane@Tag@Forward
+    pha
 
-    ; Update OAM (X pointer is already set)
+    ; Load Player Speed
+    lda character_attr.speed, Y
+
+    pha ; Store Speed
+    
+    lda inputstate.rbtn, X
+    cmp #1
+    bne @Move_Sprite
+
+    @Turbo:
+        pla
+        sta WRMPYA
+
+        pla ; Pull tag and update
+        lda #Sprite_Plane@Tag@Forward_Afterburner
+        pha
+
+        A8
+        lda character_attr.turbo_multi, Y
+        sta WRMPYB
+
+        nop
+        nop
+        nop
+        nop
+
+        lda RDMPYL
+        clc
+        adc RDMPYH
+        A16
+        pha
+
+
+
+    @Move_Sprite:
+        iny
+        iny
+        iny
+        A16
+        lda $00, Y
+        tax
+
+        ; Load Sprite Info
+        A8
+        lda sprite_desc.x, X
+        clc
+        adc 1, S
+        sta sprite_desc.x, X
+        jsr Sprite_MarkDirty
+
+        pla
+        pla
+        A16
+
+        txy
+        jsr Sprite_SetTag
+        
+        ; Set the frame of the sprite to 0
+        lda #0
+        jsr Sprite_SetFrame
+
     jsr Renderer_TestMoveScreenRight
-    jsr OAM_MarkDirty
 
     @Done:
         plx
