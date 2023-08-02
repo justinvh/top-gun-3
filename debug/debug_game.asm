@@ -10,8 +10,14 @@
 .print "debug_game.asm: Enabling debug hooks\n"
 
 ; Required hooks to debug the map manager
-.ifeq DEBUG_MAP 1
-    .print "debug_game.asm: Enabling map debug hooks\n"
+.ifeq DEBUG_SKYSCRAPER_MAP 1
+    .print "debug_game.asm: Enabling skyscraper map debug hooks\n"
+    .redefine DEBUG_Game_Init 1
+.endif
+
+; Required hooks to debug the map manager
+.ifeq DEBUG_SYNTHSCRAPER_MAP 1
+    .print "debug_game.asm: Enabling synthscraper map debug hooks\n"
     .redefine DEBUG_Game_Init 1
 .endif
 
@@ -64,8 +70,12 @@
 
 Game_Init@DebugStart:
 
-    .ifeq DEBUG_MAP 1
-    jsr Debug_LoadMap
+    .ifeq DEBUG_SKYSCRAPER_MAP 1
+    jsr Debug_LoadSkyscraperMap
+    .endif
+
+    .ifeq DEBUG_SYNTHSCRAPER_MAP 1
+    jsr Debug_LoadSynthscraperMap
     .endif
 
     .ifeq DEBUG_PLANE_SPRITE_LOADING 1
@@ -407,8 +417,8 @@ Debug_TestClockUIFrame:
     rts
 .endif ; DEBUG_UI_LOADING
 
-.ifeq DEBUG_MAP 1
-Debug_LoadMap:
+.ifeq DEBUG_SKYSCRAPER_MAP 1
+Debug_LoadSkyscraperMap:
     pha
     phx
     phy
@@ -426,7 +436,29 @@ Debug_LoadMap:
     plx
     pla
     rts
-.endif ; DEBUG_MAP
+.endif ; DEBUG_SKYSCRAPER_MAP
+
+.ifeq DEBUG_SYNTHSCRAPER_MAP 1
+Debug_LoadSynthscraperMap:
+    pha
+    phx
+    phy
+
+    ; Just to make the vertical offset pretty for now
+    lda #255
+    sta renderer.bg_screen.1.v_offset.w
+    sta renderer.bg_screen.2.v_offset.w
+
+    ; Load a demo map
+    lda #Map_Synthscraper@Bank
+    ldy #Map_Synthscraper@Data
+    jsr MapManager_Load
+
+    ply
+    plx
+    pla
+    rts
+.endif ; DEBUG_SYNTHSCRAPER_MAP
 
 .ends
 
