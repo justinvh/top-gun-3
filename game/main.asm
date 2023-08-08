@@ -75,6 +75,10 @@ Main:
     ; Initialize the game
     jsr Game_Init
 
+    .ifeq DEBUG_EntityManager 1
+        jsr Main@EntityManagerTest
+    .endif
+
     A8
 
     lda #$0F

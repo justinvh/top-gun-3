@@ -2,6 +2,7 @@
 
 .include "engine/engine.asm"
 
+.include "game/entities/entities.asm"
 .include "game/sprites.i"
 .include "game/maps.i"
 .include "game/fonts.i"
@@ -56,6 +57,8 @@ Game_Frame:
     jsr Player_Frame
     bra @Done
 
+    jsr EntityManager_Frame
+
     @Done:
     A16
 
@@ -87,6 +90,9 @@ Game_Init:
 
     ; Initialize all font data
     jsr Game_FontInit
+
+    ; Initialize entity manager
+    jsr EntityManager_Init
 
     ldx #game.characters
     jsr Characters_Init
@@ -141,6 +147,7 @@ Game_FontInit:
 ;
 Game_VBlank:
     jsr Engine_VBlank
+    jsr EntityManager_VBlank
     ;jsr Renderer_TestHScroll
 
     rts

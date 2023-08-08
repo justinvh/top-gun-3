@@ -6,37 +6,38 @@
 ; will be compiled below.
 .ifeq DEBUG_HOOKS 1
 
-.print "debug_vram.asm: Enabling debug hooks\n"
+.print "debug_pool.asm: Enabling debug hooks\n"
 
-; Required hooks to debug the VRAM manager
-.ifeq DEBUG_VRAM_ALLOCATOR 1
-    .print "debug_vram.asm: Enabling vram manager debug hooks\n"
+; Required hooks to debug the Pool manager
+.ifeq DEBUG_POOL_ALLOCATOR 1
+    .print "debug_pool.asm: Enabling vram manager debug hooks\n"
     .redefine DEBUG_PoolTest 1
 .endif
 
 .struct DebugPool
     empty db
 
-    .ifeq DEBUG_VRAM_ALLOCATOR 1
+    .ifeq DEBUG_PoolTest 1
     pool instanceof Pool
     .endif
 .endst
 
-.ramsection "DebugVRAMRAM" appendto "RAM"
-    dbg_vram instanceof DebugPool
+.ramsection "DebugPoolRAM" appendto "RAM"
+    dbg_pool instanceof DebugPool
 .ends
 
-.section "DebugVRAMROM" bank 0 slot "ROM"
+.section "DebugPoolROM" bank 0 slot "ROM"
 
 nop
 
+.ifeq DEBUG_PoolTest 1
 Main@PoolTest:
     pha
     phx
 
     brk
 
-    ldx #dbg_vram.pool
+    ldx #dbg_pool.pool
     pea $0000
     pea $8000
     jsr Pool_AllocateBlock
@@ -45,13 +46,13 @@ Main@PoolTest:
 
     ; Intentionally mark the block free, so that we can
     ; attempt to split it below
-    ldx #dbg_vram.pool.chunks.1
+    ldx #dbg_pool.pool.chunks.1
     lda #1
     sta pool_chunk.free, X
 
     ; Attempt to allocate an entire block
     @AllocateBlock:
-        ldx #dbg_vram.pool
+        ldx #dbg_pool.pool
 
         pea $2000
         pea $27FF
@@ -63,7 +64,7 @@ Main@PoolTest:
         beq @FailedAllocateBlock
 
         ; Confirm the pool was correctly allocated
-        ldx #dbg_vram.pool.chunks.1
+        ldx #dbg_pool.pool.chunks.1
 
         lda pool_chunk.free, X
         cmp #$0
@@ -82,7 +83,7 @@ Main@PoolTest:
         bne @FailedAllocateBlock
 
         ; Look at the "prev" block and confirm it was correctly allocated
-        ldx #dbg_vram.pool.chunks.2
+        ldx #dbg_pool.pool.chunks.2
 
         lda pool_chunk.start, X
         cmp #$0
@@ -100,7 +101,7 @@ Main@PoolTest:
         bne @FailedAllocateBlock
 
         ; Look at the "next" block and confirm it was correctly allocated
-        ldx #dbg_vram.pool.chunks.3
+        ldx #dbg_pool.pool.chunks.3
 
         lda pool_chunk.start, X
         cmp #$2800
@@ -125,7 +126,7 @@ Main@PoolTest:
 
     ; Attempt to allocate within a block
     @AllocateWithinBlock1:
-        ldx #dbg_vram.pool
+        ldx #dbg_pool.pool
         pea $100
         pea $2800
         pea $4000
@@ -160,7 +161,7 @@ Main@PoolTest:
 
     ; Attempt to allocate within a block
     @AllocateWithinBlock2:
-        ldx #dbg_vram.pool
+        ldx #dbg_pool.pool
         pea $100
         pea $2800
         pea $4000
@@ -187,62 +188,62 @@ Main@PoolTest:
         cmp #$29FF
         bne @FailedAllocateWithinBlock2
 
-    bra @FreeVRAM
+    bra @FreePool
 
     @FailedAllocateWithinBlock2:
         brk
         jmp @FailedTests    
 
-    @FreeVRAM:
-        ldx #dbg_vram.pool
+    @FreePool:
+        ldx #dbg_pool.pool
         pea $2000 ; Start
         pea $8000 ; End
         jsr Pool_Free
         pla
         pla
 
-        ldx dbg_vram.pool.head.w
+        ldx dbg_pool.pool.head.w
 
         lda pool_chunk.free, X
         cmp #1
-        bne @FailedFreeVRAM
+        bne @FailedFreePool
 
         lda pool_chunk.allocated, X
         cmp #1
-        bne @FailedFreeVRAM
+        bne @FailedFreePool
 
         lda pool_chunk.start, X
         cmp #$0
-        bne @FailedFreeVRAM
+        bne @FailedFreePool
 
         lda pool_chunk.end, X
         cmp #$1FFF
-        bne @FailedFreeVRAM
+        bne @FailedFreePool
 
         lda pool_chunk.next, X
         cmp #$0
-        bne @FailedFreeVRAM
+        bne @FailedFreePool
 
-    bra @FreeAllVRAM
-    @FailedFreeVRAM:
+    bra @FreeAllPool
+    @FailedFreePool:
         brk
         jmp @FailedTests
 
-    @FreeAllVRAM:
+    @FreeAllPool:
         brk
-        ldx #dbg_vram.pool
+        ldx #dbg_pool.pool
         pea $0 ; Start
         pea $8000 ; End
         jsr Pool_Free
         pla
         pla
 
-        lda dbg_vram.pool.head.w
+        lda dbg_pool.pool.head.w
         cmp #$0
-        bne @FailedFreeAllVRAM
+        bne @FailedFreeAllPool
 
     bra @Done
-    @FailedFreeAllVRAM:
+    @FailedFreeAllPool:
         brk
         jmp @FailedTests
 
@@ -253,6 +254,7 @@ Main@PoolTest:
         plx
         pla
         rts
+.endif ; DEBUG_POOL_ALLOCATOR
 
 .ends
 
