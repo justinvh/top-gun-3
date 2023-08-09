@@ -2,6 +2,7 @@
 .INDEX 16
 
 .include "engine/drivers/snes/interface.asm"
+.include "engine/sound.asm"
 .include "engine/bg.asm"
 .include "engine/input.asm"
 .include "engine/map.asm"
@@ -37,6 +38,7 @@ Engine_Init:
     jsr FontManager_Init
     jsr InputManager_Init
     jsr Renderer_Init
+    jsr SoundManager_Init
 
     ;        S4321
     lda #%00010111

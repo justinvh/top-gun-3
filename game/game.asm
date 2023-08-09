@@ -1,6 +1,7 @@
 .include "common/lib/string.i"
 
 .include "engine/engine.asm"
+.include "game/sounds.asm"
 
 .include "game/entities/entities.asm"
 .include "game/sprites.i"

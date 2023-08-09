@@ -8,6 +8,10 @@
 
 .ramsection "RAM" bank 0 slot "WRAM" offset 0
     malloc instanceof Malloc
+
+    ; This is super hacky because WLA-DX has some kind of bug with
+    ; 24-bit direct addressing :( -- So it needs to be lower in WRAM.
+    spc700_data         ds 4
 .ends
 
 .include "common/lib/math.i"
@@ -77,6 +81,10 @@ Main:
 
     .ifeq DEBUG_EntityManager 1
         jsr Main@EntityManagerTest
+    .endif
+
+    .ifeq DEBUG_SoundPlaySongOfJosiah 1
+        jsr Main@DebugPlaySoundOfJosiah
     .endif
 
     A8
