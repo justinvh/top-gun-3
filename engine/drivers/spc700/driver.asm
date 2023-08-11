@@ -1,8 +1,5 @@
-/* SPC700 Assembly 
-.define SoundKeyAddr    $F000
-
-Pause:
-    mov A,$00F7
-    cmp A,!$F000
-    bne Pause
-    ret
+.section "SPC700ROM" bank 10 slot "ROM"
+nop
+.define SPC700Driver@Bank 10
+SPC700Driver@Data:	.incbin "engine/drivers/spc700/spc700.bin" skip 0 read 21904
+.ends
