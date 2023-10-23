@@ -70,6 +70,7 @@ WMDATA      = $2180    ; WRAM Data Register
 WMADDL      = $2181    ; WRAM Address Registers
 WMADDM      = $2182    ; WRAM Address Registers
 WMADDH      = $2183    ; WRAM Address Registers
+JOYOUT      = $4016    ; Old style Joypad write latching
 JOYSER0     = $4016    ; Old Style Joypad Registers
 JOYSER1     = $4017    ; Old Style Joypad Registers
 NMITIMEN    = $4200    ; Interrupt Enable Register
