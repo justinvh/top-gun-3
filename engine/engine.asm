@@ -59,7 +59,7 @@ Engine_VBlank:
     jsr TimerManager_VBlank
     jsr OAMManager_VBlank
     jsr FontManager_VBlank
-    jsr Input_VBlank
+    jsr InputManager_VBlank
     rts
 
 .ends

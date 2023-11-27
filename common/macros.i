@@ -60,6 +60,17 @@
     .INDEX 16
 .endm
 
+;
+; Set 8-bit Accumulator and 8-bit XY registers
+; --------
+;
+.macro A8_XY8
+    sep    #$30
+    .ACCU  8
+    .INDEX 8
+.endm
+
+
 .macro A8
     sep #%00100000
 .endm

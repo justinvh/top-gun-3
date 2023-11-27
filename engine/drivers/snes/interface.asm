@@ -7,8 +7,9 @@
 .ends
 
 .section "SNES_Interface" bank 0 slot "ROM" semifree
+
 nop
- SNES_Init:
+SNES_Init:
     pha
     phx
     phy

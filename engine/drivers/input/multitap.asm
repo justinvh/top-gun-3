@@ -18,11 +18,11 @@
     enabled db
 .endst
 
-.ramsection "MultitapRAM" appendto "RAM"
+.ramsection "Multi5RAM" appendto "RAM"
     multi5 instanceof Multitap
 .ends
 
-.section "MultitapROM" bank 0 slot "ROM" semifree
+.section "Multi5ROM" bank 0 slot "ROM" semifree
 
 Multitap_Init:
     A8
@@ -43,6 +43,13 @@ Multitap_Init:
     rts
 
 ;
+; V-Blank Routine for the Multitap Driver
+;
+Multitap_VBlank:
+    jsr Multitap_IdentifyPort
+    rts
+
+;
 ; The peripheral device signature is contained in bits 13 ~ 16
 ; of the OUT 0 latch pulse (<4016H> D0 WR) when read serially from
 ; <4016H> D0 (<4017H> D0)
@@ -55,7 +62,7 @@ Multitap_Init:
 ;
 Multitap_IdentifyPort:
     php
-    AXY8
+    A8_XY8
     sep #$30
 
     stz multi5.enabled
@@ -96,7 +103,6 @@ Multitap_IdentifyPort:
             dex
             bne @@Loop
 
-    
     ; This reads port.1 and port.2 registers 8x times, again.
     ; The goal is to verify the signature is now not $FF.
     @ReadSignaturePass2:
@@ -144,7 +150,7 @@ Multitap_IdentifyPort:
     ; We then check the state of port.2 signature bits and
     ; check if they are set to $FF and then not $FF. If true,
     ; then a multitap is plugged into port 2
-    @Port2Enabled:
+    @CheckPort2Enabled:
         ; if (port.1_sigh != 0xFF) Done()
         lda multi5.port.2.sigh
         cmp #$FF
@@ -162,5 +168,7 @@ Multitap_IdentifyPort:
 
     @Done:
         plp
-        AXY16
+        A16_XY16
         rts
+
+.ends

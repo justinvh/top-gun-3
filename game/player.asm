@@ -135,7 +135,7 @@ Player_UpBtn:
     tax
 
     ; Check if Up Button is pressed
-    lda inputstate.upbtn, X
+    lda padstate.upbtn, X
     and #1
     beq @Done
 
@@ -188,7 +188,7 @@ Player_DnBtn:
     tax
 
     ; Check if Down Button is pressed
-    lda inputstate.dnbtn, X
+    lda padstate.dnbtn, X
     and #1
     beq @Done
 
@@ -241,7 +241,7 @@ Player_LftBtn:
     tax
 
     ; Check if Left Button is pressed
-    lda inputstate.lftbtn, X
+    lda padstate.lftbtn, X
     and #1
     beq @Done
 
@@ -296,7 +296,7 @@ Player_RhtBtn:
     tax
 
     ; Check if Right Button is pressed
-    lda inputstate.rhtbtn, X
+    lda padstate.rhtbtn, X
     and #1
     beq @Done
 
@@ -322,7 +322,7 @@ Player_RhtBtn:
 
     pha ; Store Speed
     
-    lda inputstate.rbtn, X
+    lda padstate.rbtn, X
     cmp #1
     bne @Move_Sprite
 
